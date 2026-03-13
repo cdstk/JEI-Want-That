@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "jeiwt.mixin",
+  "refmap": "mixins.jeiwt.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "mixins": [
+    "jei.BookmarkList_DataMixin",
+    "jei.JeiStarter_BookmarkDataMixin"
+  ],
+  "injectors": {
+    "maxShiftBy": 10
+  }
+}
