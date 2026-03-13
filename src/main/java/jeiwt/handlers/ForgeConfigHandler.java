@@ -3,6 +3,7 @@ package jeiwt.handlers;
 import jeiwt.JEIWantThat;
 import jeiwt.handlers.config.EnchantmentSearchConfig;
 import jeiwt.handlers.config.TooltipLineSearchConfig;
+import jeiwt.handlers.config.VillagerSearchConfig;
 import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
 import net.minecraftforge.common.config.Config;
@@ -21,6 +22,10 @@ public class ForgeConfigHandler {
 	@Config.Comment("Item Tooltip Searching")
 	@Config.Name("Tooltip Searching")
 	public static final TooltipLineSearchConfig tooltipLineSearch = new TooltipLineSearchConfig();
+
+	@Config.Comment("Villager Searching")
+	@Config.Name("Villager Searching")
+	public static final VillagerSearchConfig villagerSearch = new VillagerSearchConfig();
 
 	@Config.Comment("Client-Side Options")
 	@Config.Name("Client Options")

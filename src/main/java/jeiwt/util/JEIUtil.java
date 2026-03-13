@@ -189,24 +189,16 @@ public class JEIUtil {
         List<String> desirableLines = new ArrayList<>();
 
         NBTTagList enchantmentsNBT = ItemEnchantedBook.getEnchantments(stack);
-        if(enchantmentsNBT.isEmpty()) enchantmentsNBT = stack.getEnchantmentTagList();
+        if(enchantmentsNBT.isEmpty() && stackHasBookmarkedEnchantments(stack)) enchantmentsNBT = stack.getEnchantmentTagList();
 
         Enchantment firstEnchantment = enchantmentsNBT.isEmpty() ? null : Enchantment.getEnchantmentByID(enchantmentsNBT.getCompoundTagAt(0).getShort("id"));
         int numEnchantments = 0;
         for (int i = 0; i < originalLines.size(); ++i) {
             String line = originalLines.get(i);
-            boolean addLine = false;
-            if (i == 0) {
-                originalLines.set(i, stack.getItem().getForgeRarity(stack).getColor() + line);
-            }
-            else {
-                originalLines.set(i, TextFormatting.GRAY + line);
-            }
+            boolean addLine = isLineDesirable(stack, line, i);
 
-            if(isLineDesirable(stack, line, i)){
-                addLine = true;
-            }
-            else {
+            if(!addLine){
+                // Assume every enchant is next to each other
                 if(isLineContainsEnchantment(line, firstEnchantment)) {
                     numEnchantments = stack.isItemEnchanted() && ForgeConfigHandler.enchantmentSearch.matchTopOnly ? 1 : enchantmentsNBT.tagCount();
                     firstEnchantment = null;
@@ -214,7 +206,14 @@ public class JEIUtil {
                 if(numEnchantments-- > 0) addLine = true;
             }
 
-            if(addLine) desirableLines.add(originalLines.get(i));
+            if(addLine){
+                if (i == 0) {
+                    desirableLines.add(stack.getItem().getForgeRarity(stack).getColor() + line);
+                }
+                else {
+                    desirableLines.add(TextFormatting.GRAY + line);
+                }
+            }
         }
 
         if(desirableLines.isEmpty()

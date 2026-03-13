@@ -3,6 +3,7 @@ package jeiwt.client.renderer;
 import com.google.common.base.Predicates;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.handlers.ForgeConfigHandler;
+import jeiwt.handlers.ForgeConfigProvider;
 import jeiwt.util.JEIUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -10,6 +11,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EntitySelectors;
@@ -22,7 +24,9 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.client.config.GuiUtils;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class WorldTooltipRenderer {
@@ -33,18 +37,20 @@ public class WorldTooltipRenderer {
         if (mc.player == null || mc.world == null) return;
         if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
 
-        RayTraceResult mouseOverItem = getEntityItem(mc.player, event.getPartialTicks(), mc);
-        List<EntityItem> itemEntities = mc.world.getEntities(EntityItem.class, entityItem -> mc.player.canEntityBeSeen(entityItem));
-        itemEntities.removeIf(entityItem -> !JEIUtil.isItemStackDesirable(entityItem.getItem()));
-        itemEntities.sort((left, right) -> {
+        RayTraceResult mouseOverEntity = getMouseOverEntity(mc.player, event.getPartialTicks(), mc);
+        List<Entity> entitiesToRender = new ArrayList<>();
+        entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> mc.player.canEntityBeSeen(entityItem)));
+        entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> true));
+        entitiesToRender.removeIf(entity -> !isEntityDesirable(entity));
+        entitiesToRender.sort((left, right) -> {
             BlockPos pos = mc.player.getPosition();
-            if(mouseOverItem != null){
-                switch (mouseOverItem.typeOfHit){
+            if(mouseOverEntity != null){
+                switch (mouseOverEntity.typeOfHit){
                     case ENTITY:
-                        if(mouseOverItem.entityHit != null) pos = mouseOverItem.entityHit.getPosition();
+                        if(mouseOverEntity.entityHit != null) pos = mouseOverEntity.entityHit.getPosition();
                         break;
                     case BLOCK:
-                        if(mouseOverItem.getBlockPos() != null) pos = mouseOverItem.getBlockPos();
+                        if(mouseOverEntity.getBlockPos() != null) pos = mouseOverEntity.getBlockPos();
                         break;
                 }
             }
@@ -54,18 +60,31 @@ public class WorldTooltipRenderer {
             return 0;
         });
 
-        itemEntities.forEach(entityItem -> renderItem(entityItem, event.getPartialTicks()));
+        entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
+    }
+
+    public static boolean isEntityDesirable(Entity entity){
+        if(entity instanceof EntityItem
+                && JEIUtil.isItemStackDesirable(((EntityItem) entity).getItem())) {
+            return true;
+        }
+        else if(entity instanceof EntityVillager
+                && ForgeConfigHandler.villagerSearch.enabled
+                && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)){
+            return true;
+        }
+        return false;
     }
 
     // https://github.com/CreativeMD/ItemPhysic/blob/1.12/src/main/java/com/creativemd/itemphysic/EventHandler.java#L82
-    public static RayTraceResult getEntityItem(EntityPlayer player, Vec3d position, Vec3d look, double distance) {
+    public static RayTraceResult getMouseOverEntity(EntityPlayer player, Vec3d position, Vec3d look, double distance) {
         Vec3d include = look.subtract(position);
         List<Entity> list = player.world.getEntitiesInAABBexcluding(
                 player,
                 player.getEntityBoundingBox()
                         .expand(include.x, include.y, include.z)
                         .expand(distance, distance, distance),
-                Predicates.and(EntitySelectors.NOT_SPECTATING, entity -> entity instanceof EntityItem)
+                Predicates.and(EntitySelectors.NOT_SPECTATING, WorldTooltipRenderer::isEntityDesirable)
         );
         for (Entity entity : list) {
                 AxisAlignedBB aabb = entity.getEntityBoundingBox().grow(0.2);
@@ -84,7 +103,7 @@ public class WorldTooltipRenderer {
     }
 
     // https://github.com/CreativeMD/ItemPhysic/blob/1.12/src/main/java/com/creativemd/itemphysic/EventHandler.java#L82
-    public static RayTraceResult getEntityItem(EntityPlayer player, float partialTicks, Minecraft mc) {
+    public static RayTraceResult getMouseOverEntity(EntityPlayer player, float partialTicks, Minecraft mc) {
         double distance = ForgeConfigHandler.client.mouseTargetRange;
         Vec3d position = player.getPositionEyes(partialTicks);
         Vec3d vec3d1 = player.getLook(partialTicks);
@@ -100,11 +119,11 @@ public class WorldTooltipRenderer {
             }
         }
 
-        return getEntityItem(player, position, position.add(vec3d1.x * distance, vec3d1.y * distance, vec3d1.z * distance), distance);
+        return getMouseOverEntity(player, position, position.add(vec3d1.x * distance, vec3d1.y * distance, vec3d1.z * distance), distance);
 
     }
 
-    private static void renderItem(EntityItem entity, float partialTicks) {
+    private static void renderEntity(Entity entity, float partialTicks) {
         Minecraft mc = Minecraft.getMinecraft();
         double camX = mc.getRenderManager().viewerPosX;
         double camY = mc.getRenderManager().viewerPosY;
@@ -113,37 +132,81 @@ public class WorldTooltipRenderer {
         double posY = entity.lastTickPosY + (entity.posY - entity.lastTickPosY) * partialTicks - camY;
         double posZ = entity.lastTickPosZ + (entity.posZ - entity.lastTickPosZ) * partialTicks - camZ;
 
-        FontRenderer font = mc.fontRenderer;
-        ItemStack stack = entity.getItem();
-        List<String> tooltip = JEIUtil.getDesirableTooltip(stack);
-        List<String> blankLines = new ArrayList<>();
-
         double distance = mc.player.getDistance(entity);
         float baseScale = ForgeConfigHandler.client.baseScale; // 0.025F;
-        float distanceScaler = 1F;
-        boolean renderItemStack = tooltip.isEmpty() && ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.ITEM_STACK;
+        float distanceScale = 1F;
         if(distance >= ForgeConfigHandler.client.distanceScaleStart) {
-            distanceScaler = (float) (ForgeConfigHandler.client.distanceScaleFactor * distance);
+            distanceScale = (float) (ForgeConfigHandler.client.distanceScaleFactor * distance);
         }
 
         int width = 0;
-        for(String s : tooltip) width = Math.max(width, font.getStringWidth(s));
-        int drawX = (-width/2) - 12;
+        int drawX = -12;
         int drawY = 0;
+        float poleHeight = 0;
 
-        float poleHeight = 1F;
-        poleHeight += 0.25F * tooltip.size();
+        if(entity instanceof EntityItem){
+            ItemStack stack = ((EntityItem) entity).getItem();
+            List<String> tooltip = JEIUtil.getDesirableTooltip(stack);
+            for(String s : tooltip) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
+            drawX += (-width / 2);
+            poleHeight = 1F + (0.25F * tooltip.size());
+            if(baseScale != 0){
+                poleHeight *= (0.025F / baseScale);
+            }
+            renderForItem(
+                    stack,
+                    JEIUtil.getDesirableTooltip(stack),
+                    posX,
+                    posY,
+                    posZ,
+                    drawX,
+                    drawY,
+                    poleHeight,
+                    baseScale,
+                    distanceScale,
+                    mc
+            );
+        }
+        else if(entity instanceof EntityVillager){
+            List<String> displayName = entity.hasCustomName()
+                    ? Collections.singletonList(entity.getDisplayName().getFormattedText())
+                    : Collections.singletonList(entity.getName()
+            );
+            for(String s : displayName) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
+            drawX += (-width / 2);
+            poleHeight = entity.height + (0.25F * displayName.size());
+            if(baseScale != 0){
+                poleHeight *= (0.025F / baseScale);
+            }
+            renderForVillager(
+                    ForgeConfigProvider.getVillagerTooltipItem(),
+                    displayName,
+                    posX,
+                    posY,
+                    posZ,
+                    drawX,
+                    drawY,
+                    poleHeight,
+                    baseScale,
+                    distanceScale,
+                    mc
+            );
+        }
+    }
+
+    private static void renderForItem(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
+        List<String> blankLines = new ArrayList<>();
+        boolean renderItemStack = textLines.isEmpty() && ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.ITEM_STACK;
         for(float i = 0.25F; i < poleHeight; i += 0.25F) blankLines.add(" ");
 
         GlStateManager.pushMatrix();
-
         GlStateManager.translate(posX, posY, posZ);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
         if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip)){
             GlStateManager.translate(0, 1F, 0);
         }
-        GlStateManager.translate(0, poleHeight, 0.1);
+        GlStateManager.translate(0, poleHeight * (baseScale / 0.025F), 0.1);
         GlStateManager.scale(-baseScale, -baseScale, baseScale);
 
         GlStateManager.pushMatrix();
@@ -151,7 +214,7 @@ public class WorldTooltipRenderer {
         GuiUtils.drawHoveringText(
                 stack,
                 blankLines,
-                (int) (-font.getStringWidth(" ") * 3.5),
+                (int) (-mc.fontRenderer.getStringWidth(" ") * 3.5),
                 drawY,
                 mc.displayWidth,
                 mc.displayHeight,
@@ -159,11 +222,11 @@ public class WorldTooltipRenderer {
                 mc.fontRenderer
         );
         if(!renderItemStack) {
-            GlStateManager.translate(0, -ForgeConfigHandler.client.yInventoryOffset, 0);
-            GlStateManager.scale(distanceScaler, distanceScaler, distanceScaler);
+            GlStateManager.translate(0, -ForgeConfigHandler.client.yWorldOffset, 0);
+            GlStateManager.scale(distanceScale, distanceScale, distanceScale);
             GuiUtils.drawHoveringText(
                     stack,
-                    tooltip,
+                    textLines,
                     drawX,
                     drawY,
                     mc.displayWidth,
@@ -181,7 +244,7 @@ public class WorldTooltipRenderer {
             GlStateManager.disableDepth();
             drawX += ForgeConfigHandler.client.xWorldOffset + 1;
             drawY -= ForgeConfigHandler.client.yWorldOffset - 4;
-            GlStateManager.scale(distanceScaler, distanceScaler, 1);
+            GlStateManager.scale(distanceScale, distanceScale, 1);
             GuiUtils.drawContinuousTexturedBox(
                     new ResourceLocation("textures/gui/widgets.png"),
                     drawX,
@@ -200,12 +263,55 @@ public class WorldTooltipRenderer {
                     stack,
                     drawX,
                     drawY,
-                    font
+                    mc.fontRenderer
             );
             GlStateManager.enableAlpha();
             GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
+        GlStateManager.popMatrix();
+    }
+
+    private static void renderForVillager(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
+        boolean renderPole = !KeyHandler.isKeyDown(KeyHandler.modifiedTooltip);
+        List<String> blankLines = new ArrayList<>();
+        for(float i = 0.25F; i < poleHeight; i += 0.25F) blankLines.add(" ");
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(posX, posY, posZ);
+        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip)){
+            renderPole = false;
+        }
+        GlStateManager.translate(0, poleHeight * (baseScale / 0.025F), 0.1);
+        GlStateManager.scale(-baseScale, -baseScale, baseScale);
+
+        GlStateManager.scale(1, 1, 0);
+        if(renderPole) {
+            GuiUtils.drawHoveringText(
+                    stack,
+                    blankLines,
+                    (int) (-mc.fontRenderer.getStringWidth(" ") * 3.5),
+                    drawY,
+                    mc.displayWidth,
+                    mc.displayHeight,
+                    -1,
+                    mc.fontRenderer
+            );
+        }
+        GlStateManager.translate(0, -ForgeConfigHandler.client.yWorldOffset, 0);
+        GlStateManager.scale(distanceScale, distanceScale, distanceScale);
+        GuiUtils.drawHoveringText(
+                stack,
+                textLines,
+                drawX,
+                drawY,
+                mc.displayWidth,
+                mc.displayHeight,
+                -1,
+                mc.fontRenderer
+        );
         GlStateManager.popMatrix();
     }
 
