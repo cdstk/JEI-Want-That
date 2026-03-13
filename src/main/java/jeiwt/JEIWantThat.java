@@ -4,6 +4,8 @@ import jeiwt.client.handlers.KeyHandler;
 import jeiwt.client.renderer.InventoryHighlightRenderer;
 import jeiwt.client.renderer.WorldTooltipRenderer;
 import jeiwt.handlers.ForgeConfigProvider;
+import jeiwt.util.IBookmarkList_DataMixin;
+import jeiwt.util.JEIUtil;
 import net.minecraft.client.resources.I18n;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -21,7 +23,7 @@ import org.apache.logging.log4j.Logger;
         clientSideOnly = true,
         dependencies =
                 "required-after:fermiumbooter;" +
-                "required-after:jei;"
+                "required-after:jei@(,4.28.1];"
 )
 public class JEIWantThat {
     public static final String MODID = "jeiwt";
@@ -49,6 +51,11 @@ public class JEIWantThat {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ForgeConfigProvider.init();
+
+        // Had Enough Items
+        if(JEIUtil.BOOKMARK_LIST instanceof IBookmarkList_DataMixin) {
+            ((IBookmarkList_DataMixin) JEIUtil.BOOKMARK_LIST).jeiwt$initBookmarkedData();
+        }
         completedLoading = true;
     }
 

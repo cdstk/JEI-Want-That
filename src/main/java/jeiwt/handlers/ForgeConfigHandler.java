@@ -1,5 +1,6 @@
 package jeiwt.handlers;
 
+import jeiwt.JEIWantThat;
 import jeiwt.handlers.config.EnchantmentSearchConfig;
 import jeiwt.handlers.config.TooltipLineSearchConfig;
 import jeiwt.util.IBookmarkList_DataMixin;
@@ -9,7 +10,6 @@ import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import jeiwt.JEIWantThat;
 
 @Config(modid = JEIWantThat.MODID)
 public class ForgeConfigHandler {

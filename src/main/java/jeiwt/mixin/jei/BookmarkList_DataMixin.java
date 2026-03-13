@@ -1,6 +1,5 @@
 package jeiwt.mixin.jei;
 
-import jeiwt.JEIWantThat;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
@@ -36,6 +35,8 @@ import java.util.stream.Collectors;
 @Mixin(BookmarkList.class)
 public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin {
 
+    // TODO Fermium Booter Update for JEI vs HEI
+
     @Shadow (remap = false)
     @Final private List<IIngredientListElement<?>> ingredientListElements;
 
@@ -44,38 +45,41 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
 
     @Inject(
             method = "add",
-            at = @At(value = "INVOKE", target = "Lmezz/jei/bookmarks/BookmarkList;notifyListenersOfChange()V"),
+            at = @At(value = "RETURN"),
             remap = false
     )
     private <T> void jeiwt_jeiBookmarkList_addBookmarkData(T ingredient, CallbackInfoReturnable<Boolean> cir){
-        if(ingredient instanceof EnchantmentData){
-            jeiwt$addEnchantmentData((EnchantmentData) ingredient);
-        }
-        else if(ingredient instanceof ItemStack){
-            jeiwt$addItemStack((ItemStack) ingredient);
+        if(cir.getReturnValue()) {
+            if (ingredient instanceof EnchantmentData) {
+                jeiwt$addEnchantmentData((EnchantmentData) ingredient);
+            } else if (ingredient instanceof ItemStack) {
+                jeiwt$addItemStack((ItemStack) ingredient);
+            }
         }
     }
 
     @Inject(
             method = "remove",
-            at = @At(value = "INVOKE", target = "Lmezz/jei/bookmarks/BookmarkList;notifyListenersOfChange()V"),
+            at = @At(value = "RETURN"),
             remap = false
     )
     private <T> void jeiwt_jeiBookmarkList_removeBookmarkData(T ingredient, CallbackInfoReturnable<Boolean> cir){
-        if(ingredient instanceof EnchantmentData){
-            jeiwt$removeEnchantmentData((EnchantmentData) ingredient);
-        }
-        else if(ingredient instanceof ItemStack){
-            jeiwt$removeItemStack((ItemStack) ingredient);
+        if(cir.getReturnValue()) {
+            if (ingredient instanceof EnchantmentData) {
+                jeiwt$removeEnchantmentData((EnchantmentData) ingredient);
+            } else if (ingredient instanceof ItemStack) {
+                jeiwt$removeItemStack((ItemStack) ingredient);
+            }
         }
     }
 
     @Inject(
             method = "loadBookmarks",
-            at = @At(value = "INVOKE", target = "Lmezz/jei/bookmarks/BookmarkList;notifyListenersOfChange()V"),
+            at = @At(value = "TAIL"),
             remap = false
     )
     private void jeiwt_jeiBookmarkList_loadBookmarksData(CallbackInfo ci){
+        JEIUtil.BOOKMARK_LIST = (BookmarkList)(Object)this;
         jeiwt$initBookmarkedData();
     }
 

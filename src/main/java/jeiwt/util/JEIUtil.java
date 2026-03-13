@@ -1,15 +1,9 @@
 package jeiwt.util;
 
-import it.unimi.dsi.fastutil.ints.IntSet;
-import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
 import mezz.jei.bookmarks.BookmarkList;
-import mezz.jei.config.Config;
-import mezz.jei.gui.ingredients.IIngredientListElement;
-import mezz.jei.ingredients.IngredientListElementComparator;
-import mezz.jei.util.Translator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.enchantment.Enchantment;
@@ -26,14 +20,11 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.translation.I18n;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class JEIUtil {
 

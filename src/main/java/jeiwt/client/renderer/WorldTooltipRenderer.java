@@ -203,6 +203,7 @@ public class WorldTooltipRenderer {
                     font
             );
             GlStateManager.enableAlpha();
+            GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
         GlStateManager.popMatrix();
