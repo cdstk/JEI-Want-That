@@ -359,26 +359,9 @@ public class WorldTooltipRenderer {
 
         GlStateManager.disableRescaleNormal();
         enableWorldOverlayStandardItemLighting();
-        // TODO Why do some TE like Shulker/Chest cull but others like Charm Crate alwys render
-        if(!renderItemStack) {
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(0, ForgeConfigHandler.client.yWorldOffset, 0);
-            GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
-            GuiUtils.drawHoveringText(
-                    stack,
-                    textLines,
-                    drawX,
-                    drawY,
-                    mc.displayWidth,
-                    mc.displayHeight,
-                    -1,
-                    mc.fontRenderer
-            );
-            GlStateManager.popMatrix();
-        }
         if(renderItemStack) {
             GlStateManager.pushMatrix();
-            GlStateManager.disableDepth();
+            if(ForgeConfigHandler.client.worldIconsIgnoreDepth) GlStateManager.disableDepth();
             GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
             drawX += ForgeConfigHandler.client.xWorldOffset + 1;
             drawY -= ForgeConfigHandler.client.yWorldOffset - 4;
@@ -403,6 +386,23 @@ public class WorldTooltipRenderer {
             );
             GlStateManager.enableAlpha();
             GlStateManager.enableDepth();
+            GlStateManager.popMatrix();
+        }
+        // TODO Why do some TE like Shulker/Chest cull but others like Charm Crate alwys render
+        else {
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(0, ForgeConfigHandler.client.yWorldOffset, 0);
+            GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
+            GuiUtils.drawHoveringText(
+                    stack,
+                    textLines,
+                    drawX,
+                    drawY,
+                    mc.displayWidth,
+                    mc.displayHeight,
+                    -1,
+                    mc.fontRenderer
+            );
             GlStateManager.popMatrix();
         }
         GlStateManager.enableRescaleNormal();

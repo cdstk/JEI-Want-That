@@ -121,6 +121,13 @@ public class ForgeConfigHandler {
 		@Config.Name("World Mouse Target Blocks")
 		public boolean mouseTargetBlock = true;
 
+		@Config.Comment({
+				"Allows Item Icons to be rendered through blocks, will cause certain items to layer incorrectly." +
+				"Incorrect visuals include enchantment glints and 3d models such as chests."
+		})
+		@Config.Name("World Item Icons Render Through Blocks")
+		public boolean worldIconsIgnoreDepth = true;
+
 		@Config.Comment("X Offset for Tooltips rendered in the Inventory")
 		@Config.Name("Inventory X Tooltip Offset")
 		public int xInventoryOffset = 6;

@@ -5,7 +5,9 @@ import jeiwt.compat.CharmUtil;
 import jeiwt.compat.ModLoadedUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
+import mezz.jei.Internal;
 import mezz.jei.bookmarks.BookmarkList;
+import mezz.jei.config.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.enchantment.Enchantment;
@@ -58,6 +60,10 @@ public class JEIUtil {
 
         // Config Regex
         if(stackMatchesAnyQuery(stack)){
+            return true;
+        }
+
+        if(stackInFilteredSearch(stack)){
             return true;
         }
 
@@ -123,6 +129,22 @@ public class JEIUtil {
             if(ForgeConfigProvider.checkLineForLangKeys(line)) return true;
             if(ForgeConfigProvider.checkLineForPatterns(line)) return true;
         }
+        return false;
+    }
+
+    public static boolean stackInFilteredSearch(ItemStack stack){
+        if(!ForgeConfigHandler.tooltipLineSearch.jeiFilteredSearch) return false;
+        if(Config.getFilterText().isEmpty()) return false;
+
+        for(Object object : Internal.getIngredientFilter().getFilteredIngredients()) {
+            if(object instanceof ItemStack) {
+                ItemStack filteredStack = (ItemStack) object;
+                if(filteredStack.getItem().equals(stack.getItem()) && filteredStack.getMetadata() == stack.getMetadata()) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

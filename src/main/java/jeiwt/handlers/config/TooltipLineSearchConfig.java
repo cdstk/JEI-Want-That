@@ -15,4 +15,8 @@ public class TooltipLineSearchConfig {
     public String[] regexPatterns = {
             ".*Sockets.*"
     };
+
+    @Config.Comment("Items in JEI's filtered search result will be marked")
+    @Config.Name("Use JEI Filtered Search")
+    public boolean jeiFilteredSearch = false;
 }
