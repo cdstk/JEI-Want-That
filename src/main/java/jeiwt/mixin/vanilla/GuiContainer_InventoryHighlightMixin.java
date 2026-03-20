@@ -1,5 +1,6 @@
 package jeiwt.mixin.vanilla;
 
+import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.client.renderer.InventoryHighlightRenderer;
 import jeiwt.handlers.ForgeConfigHandler;
@@ -24,8 +25,10 @@ public abstract class GuiContainer_InventoryHighlightMixin {
         if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
 
         if(JEIUtil.isItemStackDesirable(slot.getStack())){
+            JEIWantThat.setSkipModdedTooltips();
             InventoryHighlightRenderer.drawBorderSlot(slot, slot.getStack());
             RenderHelper.enableGUIStandardItemLighting();
+            JEIWantThat.resetSkipModdedTooltips();
         }
     }
 }

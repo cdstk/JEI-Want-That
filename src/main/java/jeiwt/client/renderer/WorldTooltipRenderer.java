@@ -1,7 +1,11 @@
 package jeiwt.client.renderer;
 
 import com.google.common.base.Predicates;
+import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
+import jeiwt.compat.CharmUtil;
+import jeiwt.compat.ModLoadedUtil;
+import jeiwt.compat.WearableBackpacksUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
 import jeiwt.util.JEIUtil;
@@ -13,7 +17,10 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityShulkerBox;
 import net.minecraft.util.EntitySelectors;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -23,6 +30,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.client.config.GuiUtils;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.logging.log4j.Level;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -45,13 +53,11 @@ public class WorldTooltipRenderer {
         entitiesToRender.sort((left, right) -> {
             BlockPos pos = mc.player.getPosition();
             if(mouseOverEntity != null){
-                switch (mouseOverEntity.typeOfHit){
-                    case ENTITY:
-                        if(mouseOverEntity.entityHit != null) pos = mouseOverEntity.entityHit.getPosition();
-                        break;
-                    case BLOCK:
-                        if(mouseOverEntity.getBlockPos() != null) pos = mouseOverEntity.getBlockPos();
-                        break;
+                if (mouseOverEntity.typeOfHit == RayTraceResult.Type.ENTITY && mouseOverEntity.entityHit != null) {
+                    pos = mouseOverEntity.entityHit.getPosition();
+                }
+                else {
+                    pos = mouseOverEntity.getBlockPos();
                 }
             }
             double delta = right.getDistanceSq(pos) - left.getDistanceSq(pos);
@@ -60,7 +66,29 @@ public class WorldTooltipRenderer {
             return 0;
         });
 
+        List<TileEntity> tileEntitiesToRender = new ArrayList<>();
+        if(ForgeConfigHandler.tileEntitySearch.enabled) tileEntitiesToRender.addAll(mc.world.loadedTileEntityList);
+        tileEntitiesToRender.removeIf(tileEntity -> !isTileEntityDesirable(tileEntity, mc.player));
+        tileEntitiesToRender.sort((left, right) -> {
+            BlockPos pos = mc.player.getPosition();
+            if(mouseOverEntity != null){
+                if (mouseOverEntity.typeOfHit == RayTraceResult.Type.ENTITY && mouseOverEntity.entityHit != null) {
+                    pos = mouseOverEntity.entityHit.getPosition();
+                }
+                else {
+                    pos = mouseOverEntity.getBlockPos();
+                }
+            }
+            double delta = right.getDistanceSq(pos.getX(), pos.getY(), pos.getZ()) - left.getDistanceSq(pos.getX(), pos.getY(), pos.getZ());
+            if (delta > 0) return (int) Math.max(1, delta);
+            else if (delta < 0) return (int) Math.min(-1, delta);
+            return 0;
+        });
+
+        JEIWantThat.setSkipModdedTooltips();
+        tileEntitiesToRender.forEach(tileEntity -> renderTileEntity(tileEntity, event.getPartialTicks()));
         entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
+        JEIWantThat.resetSkipModdedTooltips();
     }
 
     public static boolean isEntityDesirable(Entity entity){
@@ -72,6 +100,50 @@ public class WorldTooltipRenderer {
                 && ForgeConfigHandler.villagerSearch.enabled
                 && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)){
             return true;
+        }
+        return false;
+    }
+
+    public static boolean isTileEntityDesirable(TileEntity tileEntity, EntityPlayer player){
+        if(!tileEntity.getWorld().getBlockState(tileEntity.getPos()).getBlock().equals(tileEntity.getBlockType())) return false;
+
+        boolean needsSight = true;
+        if(tileEntity instanceof TileEntityShulkerBox) needsSight = !ForgeConfigHandler.tileEntitySearch.shulkerBoxes;
+        else if(ModLoadedUtil.CHARM.isLoaded() && CharmUtil.isTileCrate(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.charmCrates;
+        else if(ModLoadedUtil.WEARABLE_BACKPACKS.isLoaded() && WearableBackpacksUtil.isTileBackpack(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.wearableBackpacks;
+
+        if(needsSight){
+            RayTraceResult rayTraceBlocks = tileEntity.getWorld().rayTraceBlocks(
+                    new Vec3d(player.posX, player.posY + (double)player.getEyeHeight(), player.posZ),
+                    new Vec3d(tileEntity.getPos().getX() + 0.5, tileEntity.getPos().getY() + 0.5, tileEntity.getPos().getZ() + 0.5),
+                    false,
+                    true,
+                    false);
+            if(rayTraceBlocks == null || !rayTraceBlocks.getBlockPos().equals(tileEntity.getPos())) {
+                return false;
+            }
+        }
+
+        // Middle Mouse Pick Block
+        ItemStack tileStack = ItemStack.EMPTY;
+        // Charm Crate states were being queried on air blocks
+        try {
+            tileStack = tileEntity.getBlockType().getPickBlock(
+                    tileEntity.getWorld().getBlockState(tileEntity.getPos()),
+                    new RayTraceResult(player),
+                    tileEntity.getWorld(),
+                    tileEntity.getPos(),
+                    player
+            );
+        }
+        catch (Exception exception) {
+            JEIWantThat.LOGGER.log(Level.WARN, "Failed to getPickBlock from Tile Entity: {}", exception.toString());
+            return false;
+        }
+
+        if(tileStack.getItem() != Items.AIR){
+            Minecraft.getMinecraft().storeTEInStack(tileStack, tileEntity);
+            return JEIUtil.isItemStackDesirable(tileStack);
         }
         return false;
     }
@@ -99,7 +171,7 @@ public class WorldTooltipRenderer {
                     return new RayTraceResult(entity);
                 }
         }
-        return null;
+        return null; // Returns null or ENTITY
     }
 
     // https://github.com/CreativeMD/ItemPhysic/blob/1.12/src/main/java/com/creativemd/itemphysic/EventHandler.java#L82
@@ -119,8 +191,64 @@ public class WorldTooltipRenderer {
             }
         }
 
-        return getMouseOverEntity(player, position, position.add(vec3d1.x * distance, vec3d1.y * distance, vec3d1.z * distance), distance);
+        RayTraceResult possibleEntity = getMouseOverEntity(player, position, position.add(vec3d1.x * distance, vec3d1.y * distance, vec3d1.z * distance), distance);
+        if(possibleEntity != null) return possibleEntity;
+        return ForgeConfigHandler.client.mouseTargetBlock ? other : null; // NULL, MISS, BLOCK
+    }
 
+    private static void renderTileEntity(TileEntity tileEntity, float partialTicks) {
+        Minecraft mc = Minecraft.getMinecraft();
+        BlockPos pos = tileEntity.getPos();
+        double camX = mc.getRenderManager().viewerPosX;
+        double camY = mc.getRenderManager().viewerPosY;
+        double camZ = mc.getRenderManager().viewerPosZ;
+        double posX = pos.getX() + 0.5 - camX;
+        double posY = pos.getY() - camY;
+        double posZ = pos.getZ() + 0.5 - camZ;
+
+        double distance = mc.player.getDistance(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+        float baseScale = ForgeConfigHandler.client.baseScale; // 0.025F;
+        float distanceScale = 1F;
+        if(distance >= ForgeConfigHandler.client.distanceScaleStart) {
+            distanceScale = (float) (ForgeConfigHandler.client.distanceScaleFactor * distance);
+        }
+
+        int width = 0;
+        int drawX = -12;
+        int drawY = 0;
+        float poleHeight = 1.75F;
+        if(baseScale != 0){
+            poleHeight *= (0.025F / baseScale);
+        }
+        ItemStack stack = tileEntity.getBlockType().getPickBlock(
+                tileEntity.getWorld().getBlockState(tileEntity.getPos()),
+                new RayTraceResult(mc.player),
+                tileEntity.getWorld(),
+                tileEntity.getPos(),
+                mc.player
+        );
+        List<String> tooltip = new ArrayList<>();
+        if(ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.DISPLAY_NAME) tooltip.add(stack.getDisplayName());
+
+        for (String s : tooltip) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
+        drawX += (-width / 2);
+        poleHeight += 0.25F * tooltip.size();
+        if (baseScale != 0) {
+            poleHeight *= (0.025F / baseScale);
+        }
+        renderTooltip(
+                stack,
+                tooltip,
+                posX,
+                posY,
+                posZ,
+                drawX,
+                drawY,
+                poleHeight,
+                baseScale,
+                distanceScale,
+                mc
+        );
     }
 
     private static void renderEntity(Entity entity, float partialTicks) {
@@ -143,87 +271,99 @@ public class WorldTooltipRenderer {
         int drawX = -12;
         int drawY = 0;
         float poleHeight = 0;
+        ItemStack stack = ItemStack.EMPTY;
+        List<String> tooltip = new ArrayList<>();
 
-        if(entity instanceof EntityItem){
-            ItemStack stack = ((EntityItem) entity).getItem();
-            List<String> tooltip = JEIUtil.getDesirableTooltip(stack);
-            for(String s : tooltip) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
-            drawX += (-width / 2);
-            poleHeight = 1F + (0.25F * tooltip.size());
-            if(baseScale != 0){
-                poleHeight *= (0.025F / baseScale);
-            }
-            renderForItem(
-                    stack,
-                    JEIUtil.getDesirableTooltip(stack),
-                    posX,
-                    posY,
-                    posZ,
-                    drawX,
-                    drawY,
-                    poleHeight,
-                    baseScale,
-                    distanceScale,
-                    mc
-            );
+        if(entity instanceof EntityItem) {
+            stack = ((EntityItem) entity).getItem();
+            tooltip = JEIUtil.getDesirableTooltip(stack);
+            poleHeight = 1F;
         }
-        else if(entity instanceof EntityVillager){
-            List<String> displayName = entity.hasCustomName()
+        else if(entity instanceof EntityVillager) {
+            stack = ForgeConfigProvider.getVillagerTooltipItem();
+            tooltip = entity.hasCustomName()
                     ? Collections.singletonList(entity.getDisplayName().getFormattedText())
                     : Collections.singletonList(entity.getName()
             );
-            for(String s : displayName) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
-            drawX += (-width / 2);
-            poleHeight = entity.height + (0.25F * displayName.size());
-            if(baseScale != 0){
-                poleHeight *= (0.025F / baseScale);
-            }
-            renderForVillager(
-                    ForgeConfigProvider.getVillagerTooltipItem(),
-                    displayName,
-                    posX,
-                    posY,
-                    posZ,
-                    drawX,
-                    drawY,
-                    poleHeight,
-                    baseScale,
-                    distanceScale,
-                    mc
-            );
+            poleHeight = entity.height;
         }
+
+        for (String s : tooltip) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
+        drawX += (-width / 2);
+        poleHeight += 0.25F * tooltip.size();
+        if (baseScale != 0) {
+            poleHeight *= (0.025F / baseScale);
+        }
+        renderTooltip(
+                stack,
+                tooltip,
+                posX,
+                posY,
+                posZ,
+                drawX,
+                drawY,
+                poleHeight,
+                baseScale,
+                distanceScale,
+                mc
+        );
     }
 
-    private static void renderForItem(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
+    private static void renderTooltip(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
         List<String> blankLines = new ArrayList<>();
-        boolean renderItemStack = textLines.isEmpty() && ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.ITEM_STACK;
-        for(float i = 0.25F; i < poleHeight; i += 0.25F) blankLines.add(" ");
+        boolean renderPole = true;
+        if(ForgeConfigHandler.client.poleDisable){
+            renderPole = false;
+            poleHeight = 0;
+        }
+        boolean renderItemStack = textLines.isEmpty();
+        if(ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.NONE) renderItemStack = false;
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(posX, posY, posZ);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
         if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip)){
-            GlStateManager.translate(0, 1F, 0);
+            switch (ForgeConfigHandler.client.worldModifyKey){
+                case HIDE_POLE:
+                    renderPole = false;
+                    break;
+                case MOVE_UP_ALL:
+                    GlStateManager.translate(0, poleHeight / 2, 0);
+                    break;
+                case MOVE_UP_POLE:
+                    GlStateManager.translate(0, poleHeight / 2, 0);
+                    poleHeight /= 2;
+                    break;
+            }
         }
         GlStateManager.translate(0, poleHeight * (baseScale / 0.025F), 0.1);
-        GlStateManager.scale(-baseScale, -baseScale, baseScale);
+        GlStateManager.scale(baseScale, baseScale, baseScale);
 
-        GlStateManager.pushMatrix();
-        GlStateManager.scale(1, 1, 0);
-        GuiUtils.drawHoveringText(
-                stack,
-                blankLines,
-                (int) (-mc.fontRenderer.getStringWidth(" ") * 3.5),
-                drawY,
-                mc.displayWidth,
-                mc.displayHeight,
-                -1,
-                mc.fontRenderer
-        );
+        if(renderPole) {
+            GlStateManager.pushMatrix();
+            GlStateManager.scale(-ForgeConfigHandler.client.poleScale, -1, 0);
+            for(float i = 0.25F; i < poleHeight; i += 0.25F) blankLines.add(" ");
+            GuiUtils.drawHoveringText(
+                    stack,
+                    blankLines,
+                    (int) (-mc.fontRenderer.getStringWidth(" ") * 3.5),
+                    drawY,
+                    mc.displayWidth,
+                    mc.displayHeight,
+                    -1,
+                    mc.fontRenderer
+            );
+            GlStateManager.popMatrix();
+        }
+
+        GlStateManager.disableRescaleNormal();
+        enableWorldOverlayStandardItemLighting();
+        // TODO Why do some TE like Shulker/Chest cull but others like Charm Crate alwys render
         if(!renderItemStack) {
-            GlStateManager.translate(0, -ForgeConfigHandler.client.yWorldOffset, 0);
-            GlStateManager.scale(distanceScale, distanceScale, distanceScale);
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(0, ForgeConfigHandler.client.yWorldOffset, 0);
+            GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
             GuiUtils.drawHoveringText(
                     stack,
                     textLines,
@@ -234,17 +374,14 @@ public class WorldTooltipRenderer {
                     -1,
                     mc.fontRenderer
             );
+            GlStateManager.popMatrix();
         }
-        GlStateManager.popMatrix();
-
-        if(renderItemStack){
+        if(renderItemStack) {
             GlStateManager.pushMatrix();
-            GlStateManager.enableDepth();
-            RenderHelper.enableGUIStandardItemLighting();
             GlStateManager.disableDepth();
+            GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
             drawX += ForgeConfigHandler.client.xWorldOffset + 1;
             drawY -= ForgeConfigHandler.client.yWorldOffset - 4;
-            GlStateManager.scale(distanceScale, distanceScale, 1);
             GuiUtils.drawContinuousTexturedBox(
                     new ResourceLocation("textures/gui/widgets.png"),
                     drawX,
@@ -258,7 +395,6 @@ public class WorldTooltipRenderer {
                     0,
                     0
             );
-            GlStateManager.scale(1, 1, -1.0e-4F);
             drawItemStack(
                     stack,
                     drawX,
@@ -269,64 +405,24 @@ public class WorldTooltipRenderer {
             GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
-        GlStateManager.popMatrix();
-    }
-
-    private static void renderForVillager(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
-        boolean renderPole = !KeyHandler.isKeyDown(KeyHandler.modifiedTooltip);
-        List<String> blankLines = new ArrayList<>();
-        for(float i = 0.25F; i < poleHeight; i += 0.25F) blankLines.add(" ");
-
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(posX, posY, posZ);
-        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-        if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip)){
-            renderPole = false;
-        }
-        GlStateManager.translate(0, poleHeight * (baseScale / 0.025F), 0.1);
-        GlStateManager.scale(-baseScale, -baseScale, baseScale);
-
-        GlStateManager.scale(1, 1, 0);
-        if(renderPole) {
-            GuiUtils.drawHoveringText(
-                    stack,
-                    blankLines,
-                    (int) (-mc.fontRenderer.getStringWidth(" ") * 3.5),
-                    drawY,
-                    mc.displayWidth,
-                    mc.displayHeight,
-                    -1,
-                    mc.fontRenderer
-            );
-        }
-        GlStateManager.translate(0, -ForgeConfigHandler.client.yWorldOffset, 0);
-        GlStateManager.scale(distanceScale, distanceScale, distanceScale);
-        GuiUtils.drawHoveringText(
-                stack,
-                textLines,
-                drawX,
-                drawY,
-                mc.displayWidth,
-                mc.displayHeight,
-                -1,
-                mc.fontRenderer
-        );
+        GlStateManager.enableRescaleNormal();
+        RenderHelper.disableStandardItemLighting();
         GlStateManager.popMatrix();
     }
 
     // GuiIngame.renderHotbar()
     private static void drawItemStack(ItemStack stack, int mouseX, int mouseY, FontRenderer font){
         Minecraft mc = Minecraft.getMinecraft();
-        GlStateManager.enableRescaleNormal();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, mouseX + 3, mouseY + 4);
         mc.getRenderItem().renderItemOverlayIntoGUI(font, stack, mouseX + 3, mouseY + 4, null);
+    }
 
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableBlend();
+    // TODO Find angle matching RenderHelper.enableGUIStandardItemLighting()
+    private static void enableWorldOverlayStandardItemLighting() {
+        GlStateManager.pushMatrix();
+//        GlStateManager.rotate(0, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(-45, 1.0F, 0.0F, 0.0F);
+        RenderHelper.enableStandardItemLighting();
+        GlStateManager.popMatrix();
     }
 }

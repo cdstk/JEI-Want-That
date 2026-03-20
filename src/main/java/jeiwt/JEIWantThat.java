@@ -3,6 +3,9 @@ package jeiwt;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.client.renderer.InventoryHighlightRenderer;
 import jeiwt.client.renderer.WorldTooltipRenderer;
+import jeiwt.compat.CharmUtil;
+import jeiwt.compat.ModLoadedUtil;
+import jeiwt.compat.QuarkUtil;
 import jeiwt.handlers.ForgeConfigProvider;
 import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
@@ -23,7 +26,7 @@ import org.apache.logging.log4j.Logger;
         clientSideOnly = true,
         dependencies =
                 "required-after:fermiumbooter;" +
-                "required-after:jei@(,4.28.1];"
+                "required-after:jei;"
 )
 public class JEIWantThat {
     public static final String MODID = "jeiwt";
@@ -62,5 +65,15 @@ public class JEIWantThat {
     // Client
     public static boolean checkLangKey(String langKey, String checkString){
         return I18n.hasKey(langKey) && checkString.contains(I18n.format(langKey));
+    }
+
+    public static void setSkipModdedTooltips(){
+        if (ModLoadedUtil.CHARM.isLoaded()) CharmUtil.setSkipCharmRender();
+        if (ModLoadedUtil.QUARK.isLoaded()) QuarkUtil.setSkipQuarkRender();
+    }
+
+    public static void resetSkipModdedTooltips(){
+        if (ModLoadedUtil.CHARM.isLoaded()) CharmUtil.resetSkipCharmRender();
+        if (ModLoadedUtil.QUARK.isLoaded()) QuarkUtil.resetSkipQuarkRender();
     }
 }

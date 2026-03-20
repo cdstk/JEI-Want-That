@@ -1,5 +1,7 @@
 package jeiwt.mixin.jei;
 
+import jeiwt.compat.HadEnoughItemsUtil;
+import jeiwt.compat.ModLoadedUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
@@ -15,7 +17,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -35,16 +36,16 @@ import java.util.stream.Collectors;
 @Mixin(BookmarkList.class)
 public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin {
 
-    // TODO Fermium Booter Update for JEI vs HEI
+    // TODO Fermium Booter Update for JEI vs HEI, currently implemented lazy way
 
     @Shadow (remap = false)
-    @Final private List<IIngredientListElement<?>> ingredientListElements;
+    public abstract List<IIngredientListElement<?>> getIngredientList();
 
     @Unique
     private static final Map<Item, Set<Integer>> ENCHANTMENTS_FROM_ITEMS = new HashMap<>();
 
     @Inject(
-            method = "add",
+            method = "add*",
             at = @At(value = "RETURN"),
             remap = false
     )
@@ -59,7 +60,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
     }
 
     @Inject(
-            method = "remove",
+            method = "remove*",
             at = @At(value = "RETURN"),
             remap = false
     )
@@ -81,6 +82,15 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
     private void jeiwt_jeiBookmarkList_loadBookmarksData(CallbackInfo ci){
         JEIUtil.BOOKMARK_LIST = (BookmarkList)(Object)this;
         jeiwt$initBookmarkedData();
+    }
+
+    @Inject(
+            method = "notifyListenersOfChange",
+            at = @At("HEAD"),
+            remap = false
+    )
+    private void jeiwt_jeiBookmarkList_notifyListenersOfChangeForHEI(CallbackInfo ci){
+        if(ModLoadedUtil.HAD_ENOUGH_ITEMS.isLoaded()) jeiwt$initBookmarkedData();
     }
 
     @Unique
@@ -165,12 +175,17 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
     @Override
     public void jeiwt$initBookmarkedData(){
         JEIUtil.initDesirables();
-        this.ingredientListElements.forEach(element -> {
-            if(element.getIngredient() instanceof EnchantmentData){
-                jeiwt$addEnchantmentData((EnchantmentData) element.getIngredient());
+        this.getIngredientList().forEach(element -> {
+            Object ingredient = element.getIngredient();
+            if(ModLoadedUtil.HAD_ENOUGH_ITEMS.isLoaded() && HadEnoughItemsUtil.isBookmarkItem(ingredient)) {
+                ingredient = HadEnoughItemsUtil.getIngredientFromBookmark(ingredient);
             }
-            else if(element.getIngredient() instanceof ItemStack){
-                jeiwt$addItemStack((ItemStack) element.getIngredient());
+
+            if(ingredient instanceof EnchantmentData){
+                jeiwt$addEnchantmentData((EnchantmentData) ingredient);
+            }
+            else if(ingredient instanceof ItemStack){
+                jeiwt$addItemStack((ItemStack) ingredient);
             }
         });
     }

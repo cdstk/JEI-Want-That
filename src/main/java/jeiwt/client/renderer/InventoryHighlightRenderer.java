@@ -1,5 +1,6 @@
 package jeiwt.client.renderer;
 
+import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.util.JEIUtil;
@@ -25,6 +26,7 @@ public class InventoryHighlightRenderer {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player == null || mc.world == null || mc.currentScreen == null) return;
         if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
+        JEIWantThat.setSkipModdedTooltips();
 
         GuiContainer guiContainer = event.getGuiContainer();
         List<Slot> backRender = new ArrayList<>();
@@ -68,6 +70,7 @@ public class InventoryHighlightRenderer {
                 }
             });
         }
+        JEIWantThat.resetSkipModdedTooltips();
     }
 
     public static void drawDarkenSlot(Slot slot) {

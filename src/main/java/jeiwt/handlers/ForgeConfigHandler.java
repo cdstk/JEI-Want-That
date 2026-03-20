@@ -2,6 +2,8 @@ package jeiwt.handlers;
 
 import jeiwt.JEIWantThat;
 import jeiwt.handlers.config.EnchantmentSearchConfig;
+import jeiwt.handlers.config.ModCompatibilityConfig;
+import jeiwt.handlers.config.TileEntitySearchConfig;
 import jeiwt.handlers.config.TooltipLineSearchConfig;
 import jeiwt.handlers.config.VillagerSearchConfig;
 import jeiwt.util.IBookmarkList_DataMixin;
@@ -15,6 +17,10 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Config(modid = JEIWantThat.MODID)
 public class ForgeConfigHandler {
 
+	@Config.Comment("Mod Compatibility")
+	@Config.Name("Mod Compatibility")
+	public static final ModCompatibilityConfig modComptability = new ModCompatibilityConfig();
+
 	@Config.Comment("Enchanted Book and Enchanted Item Searching")
 	@Config.Name("Enchantment Searching")
 	public static final EnchantmentSearchConfig enchantmentSearch = new EnchantmentSearchConfig();
@@ -22,6 +28,10 @@ public class ForgeConfigHandler {
 	@Config.Comment("Item Tooltip Searching")
 	@Config.Name("Tooltip Searching")
 	public static final TooltipLineSearchConfig tooltipLineSearch = new TooltipLineSearchConfig();
+
+	@Config.Comment("Tile Entity Searching")
+	@Config.Name("Tile Entity Searching")
+	public static final TileEntitySearchConfig tileEntitySearch = new TileEntitySearchConfig();
 
 	@Config.Comment("Villager Searching")
 	@Config.Name("Villager Searching")
@@ -44,6 +54,12 @@ public class ForgeConfigHandler {
 //
 //		@Config.Name("Y Int")
 //		public int yInt = 0;
+//
+//		@Config.Name("X Float")
+//		public float xFloat = 0;
+//
+//		@Config.Name("Y Float")
+//		public float yFloat = 0;
 //	}
 
 	public static class ClientConfig {
@@ -57,6 +73,16 @@ public class ForgeConfigHandler {
 		@Config.Name("Empty Tooltip Render")
 		public EmptyTooltipRender emptyTooltipRender = EmptyTooltipRender.ITEM_STACK;
 		public enum EmptyTooltipRender {ITEM_STACK, DISPLAY_NAME, NONE }
+
+		@Config.Comment({
+				"The \"Modified Tooltip\" Key behavior" +
+						"\tHIDE_POLE - Pole is not rendered" +
+						"\tMOVE_UP_ALL - Pole and tooltip moved up" +
+						"\tMOVE_UP_POLE - Pole shortened"
+		})
+		@Config.Name("World Modified Tooltip Key Behavior")
+		public WorldModifyKeyBehavior worldModifyKey = WorldModifyKeyBehavior.HIDE_POLE;
+		public enum WorldModifyKeyBehavior {HIDE_POLE, MOVE_UP_ALL, MOVE_UP_POLE}
 
 		@Config.Comment("X Offset for Tooltips rendered in the World")
 		@Config.Name("World X Tooltip Offset")
@@ -78,9 +104,22 @@ public class ForgeConfigHandler {
 		@Config.Name("World Distance Scale Factor")
 		public float distanceScaleFactor = 0.2F;
 
+		@Config.Comment("Completely disable the Pole from rendering")
+		@Config.Name("World Pole Disable")
+		public boolean poleDisable = false;
+
+		@Config.Comment("Scale for the Pole Render Width")
+		@Config.Name("World Pole Scale")
+		public float poleScale = 1;
+
 		@Config.Comment("Maximum Distance where the mouse can be pointed to bring the closest tooltips to the foreground.")
 		@Config.Name("World Mouse Target Range")
+		@Config.RangeDouble(max = 128)
 		public float mouseTargetRange = 32F;
+
+		@Config.Comment("Whether the mouse can target blocks, else it can only select entities.")
+		@Config.Name("World Mouse Target Blocks")
+		public boolean mouseTargetBlock = true;
 
 		@Config.Comment("X Offset for Tooltips rendered in the Inventory")
 		@Config.Name("Inventory X Tooltip Offset")

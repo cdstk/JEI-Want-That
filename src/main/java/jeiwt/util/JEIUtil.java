@@ -1,6 +1,8 @@
 package jeiwt.util;
 
 import jeiwt.client.handlers.KeyHandler;
+import jeiwt.compat.CharmUtil;
+import jeiwt.compat.ModLoadedUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
 import mezz.jei.bookmarks.BookmarkList;
@@ -79,6 +81,8 @@ public class JEIUtil {
                 }
             }
         }
+        if(ModLoadedUtil.CHARM.isLoaded() && CharmUtil.checkNestedCrate(stack)) return true;
+
         return false;
     }
 
