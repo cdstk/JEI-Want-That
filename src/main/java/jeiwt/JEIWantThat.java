@@ -56,8 +56,8 @@ public class JEIWantThat {
         ForgeConfigProvider.init();
 
         // Had Enough Items
-        if(JEIUtil.BOOKMARK_LIST instanceof IBookmarkList_DataMixin) {
-            ((IBookmarkList_DataMixin) JEIUtil.BOOKMARK_LIST).jeiwt$initBookmarkedData();
+        if(JEIUtil.bookmarkList instanceof IBookmarkList_DataMixin) {
+            ((IBookmarkList_DataMixin) JEIUtil.bookmarkList).jeiwt$initBookmarkedData();
         }
         completedLoading = true;
     }

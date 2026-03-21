@@ -80,7 +80,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
             remap = false
     )
     private void jeiwt_jeiBookmarkList_loadBookmarksData(CallbackInfo ci){
-        JEIUtil.BOOKMARK_LIST = (BookmarkList)(Object)this;
+        JEIUtil.bookmarkList = (BookmarkList)(Object)this;
         jeiwt$initBookmarkedData();
     }
 

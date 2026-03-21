@@ -61,7 +61,7 @@ public class InventoryHighlightRenderer {
                             slot.getStack(),
                             JEIUtil.getDesirableTooltip(slot.getStack()),
                             slot.xPos + ForgeConfigHandler.client.xInventoryOffset,
-                            slot.yPos + ForgeConfigHandler.client.yInventoryOffset,
+                            slot.yPos - ForgeConfigHandler.client.yInventoryOffset + 16,
                             mc.displayWidth,
                             mc.displayHeight,
                             -1,

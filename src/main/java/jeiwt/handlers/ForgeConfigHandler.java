@@ -134,7 +134,7 @@ public class ForgeConfigHandler {
 
 		@Config.Comment("Y Offset for Tooltips rendered in the Inventory")
 		@Config.Name("Inventory Y Tooltip Offset")
-		public int yInventoryOffset = 16;
+		public int yInventoryOffset = 0;
 
 		@Config.Comment("Non-Desired Items will be darkened in Inventory with the \"Modified Tooltip\" Key")
 		@Config.Name("Inventory Darken Non-Desirable")
@@ -164,8 +164,9 @@ public class ForgeConfigHandler {
 				ConfigManager.sync(JEIWantThat.MODID, Config.Type.INSTANCE);
 
 				ForgeConfigProvider.init();
-				if(JEIUtil.BOOKMARK_LIST instanceof IBookmarkList_DataMixin) {
-					((IBookmarkList_DataMixin) JEIUtil.BOOKMARK_LIST).jeiwt$initBookmarkedData();
+				if(JEIUtil.bookmarkList instanceof IBookmarkList_DataMixin) {
+					((IBookmarkList_DataMixin) JEIUtil.bookmarkList).jeiwt$initBookmarkedData();
+					JEIUtil.initFiltered();
 				}
 			}
 		}

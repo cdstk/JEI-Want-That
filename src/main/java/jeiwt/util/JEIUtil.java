@@ -11,6 +11,7 @@ import mezz.jei.config.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.Item;
@@ -32,8 +33,11 @@ import java.util.Set;
 
 public class JEIUtil {
 
-    public static BookmarkList BOOKMARK_LIST = null;
+    public static BookmarkList bookmarkList = null;
+    private static String lastFilterText = ""; // I would do a listener if it was actually implemented
 
+    private static final Map<Item, Set<Integer>> FILTERED_ITEMS = new HashMap<>();
+    private static final Set<Integer> FILTERED_ENCHANTMENTS = new HashSet<>();
     private static final Map<Item, Set<Integer>> BOOKMARKED_ITEMS = new HashMap<>();
     private static final Set<Integer> BOOKMARKED_ENCHANTMENTS = new HashSet<>();
     private static final Set<Integer> ENCHANTMENTS_FROM_ITEMS = new HashSet<>();
@@ -42,6 +46,8 @@ public class JEIUtil {
         if(stack.isEmpty()){
             return false;
         }
+
+        if(!Config.getFilterText().equals(lastFilterText)) initFiltered();
 
         // Nested Container
         if(checkNestedContainer(stack)){
@@ -60,10 +66,6 @@ public class JEIUtil {
 
         // Config Regex
         if(stackMatchesAnyQuery(stack)){
-            return true;
-        }
-
-        if(stackInFilteredSearch(stack)){
             return true;
         }
 
@@ -101,6 +103,7 @@ public class JEIUtil {
                 int id = nbtTagCompound.getShort("id");
                 if(BOOKMARKED_ENCHANTMENTS.contains(id)) return true;
                 if(ENCHANTMENTS_FROM_ITEMS.contains(id)) return true;
+                if(FILTERED_ENCHANTMENTS.contains(id)) return true;
             }
         }
         return false;
@@ -117,6 +120,7 @@ public class JEIUtil {
                 int id = nbttagcompound.getShort("id");
                 if(BOOKMARKED_ENCHANTMENTS.contains(id)) return true;
                 if(ENCHANTMENTS_FROM_ITEMS.contains(id)) return true;
+                if(FILTERED_ENCHANTMENTS.contains(id)) return true;
             }
         }
         return false;
@@ -132,33 +136,42 @@ public class JEIUtil {
         return false;
     }
 
-    public static boolean stackInFilteredSearch(ItemStack stack){
-        if(!ForgeConfigHandler.tooltipLineSearch.jeiFilteredSearch) return false;
-        if(Config.getFilterText().isEmpty()) return false;
+    public static boolean stackIsBookmarked(ItemStack stack){
+        boolean match = false;
+        Set<Integer> metaDatas = BOOKMARKED_ITEMS.get(stack.getItem());
+        if(metaDatas != null) match = metaDatas.contains(stack.getMetadata());
 
-        for(Object object : Internal.getIngredientFilter().getFilteredIngredients()) {
-            if(object instanceof ItemStack) {
-                ItemStack filteredStack = (ItemStack) object;
-                if(filteredStack.getItem().equals(stack.getItem()) && filteredStack.getMetadata() == stack.getMetadata()) {
-                    return true;
-                }
-            }
+        if(!match) {
+            metaDatas = FILTERED_ITEMS.get(stack.getItem());
+            if(metaDatas != null) match = metaDatas.contains(stack.getMetadata());
         }
 
-        return false;
-    }
-
-    public static boolean stackIsBookmarked(ItemStack stack){
-        Set<Integer> metaDatas = BOOKMARKED_ITEMS.get(stack.getItem());
-        if(metaDatas != null) return metaDatas.contains(stack.getMetadata());
-
-        return false;
+        return match;
     }
 
     public static void initDesirables(){
         BOOKMARKED_ITEMS.clear();
         BOOKMARKED_ENCHANTMENTS.clear();
         ENCHANTMENTS_FROM_ITEMS.clear();
+    }
+
+    public static void initFiltered(){
+        FILTERED_ITEMS.clear();
+        FILTERED_ENCHANTMENTS.clear();
+        lastFilterText = Config.getFilterText();
+
+        if(lastFilterText.isEmpty()) return;
+        if(!ForgeConfigHandler.tooltipLineSearch.jeiFilteredSearch) return;
+
+        Internal.getIngredientFilter().getFilteredIngredients().forEach(ingredient -> {
+            if (ingredient instanceof EnchantmentData) {
+                FILTERED_ENCHANTMENTS.add(Enchantment.getEnchantmentID(((EnchantmentData) ingredient).enchantment));
+            } else if (ingredient instanceof ItemStack) {
+                ItemStack itemStack = (ItemStack) ingredient;
+                Set<Integer> metaDatas = FILTERED_ITEMS.computeIfAbsent(itemStack.getItem(), mapStack -> new HashSet<>());
+                metaDatas.add(itemStack.getMetadata());
+            }
+        });
     }
 
     public static void modifyBookmarkedItems(ItemStack stack, int metadata) { modifyBookmarkedItems(stack, metadata, true); }

@@ -391,7 +391,7 @@ public class WorldTooltipRenderer {
         // TODO Why do some TE like Shulker/Chest cull but others like Charm Crate alwys render
         else {
             GlStateManager.pushMatrix();
-            GlStateManager.translate(0, ForgeConfigHandler.client.yWorldOffset, 0);
+            GlStateManager.translate(-ForgeConfigHandler.client.xWorldOffset, ForgeConfigHandler.client.yWorldOffset, 0);
             GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
             GuiUtils.drawHoveringText(
                     stack,
