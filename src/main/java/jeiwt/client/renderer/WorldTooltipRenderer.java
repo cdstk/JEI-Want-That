@@ -109,20 +109,8 @@ public class WorldTooltipRenderer {
 
         boolean needsSight = true;
         if(tileEntity instanceof TileEntityShulkerBox) needsSight = !ForgeConfigHandler.tileEntitySearch.shulkerBoxes;
-        else if(ModLoadedUtil.CHARM.isLoaded() && CharmUtil.isTileCrate(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.charmCrates;
+        else if(ModLoadedUtil.CHARM.isLoaded() && CharmUtil.isTileUnsealedCrate(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.charmCrates;
         else if(ModLoadedUtil.WEARABLE_BACKPACKS.isLoaded() && WearableBackpacksUtil.isTileBackpack(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.wearableBackpacks;
-
-        if(needsSight){
-            RayTraceResult rayTraceBlocks = tileEntity.getWorld().rayTraceBlocks(
-                    new Vec3d(player.posX, player.posY + (double)player.getEyeHeight(), player.posZ),
-                    new Vec3d(tileEntity.getPos().getX() + 0.5, tileEntity.getPos().getY() + 0.5, tileEntity.getPos().getZ() + 0.5),
-                    false,
-                    true,
-                    false);
-            if(rayTraceBlocks == null || !rayTraceBlocks.getBlockPos().equals(tileEntity.getPos())) {
-                return false;
-            }
-        }
 
         // Middle Mouse Pick Block
         ItemStack tileStack = ItemStack.EMPTY;
@@ -141,11 +129,25 @@ public class WorldTooltipRenderer {
             return false;
         }
 
+        boolean match = false;
         if(tileStack.getItem() != Items.AIR){
             Minecraft.getMinecraft().storeTEInStack(tileStack, tileEntity);
-            return JEIUtil.isItemStackDesirable(tileStack);
+            match = JEIUtil.isItemStackDesirable(tileStack, false);
         }
-        return false;
+
+        if(match && needsSight){
+            RayTraceResult rayTraceBlocks = tileEntity.getWorld().rayTraceBlocks(
+                    new Vec3d(player.posX, player.posY + (double)player.getEyeHeight(), player.posZ),
+                    new Vec3d(tileEntity.getPos().getX() + 0.5, tileEntity.getPos().getY() + 0.5, tileEntity.getPos().getZ() + 0.5),
+                    false,
+                    true,
+                    false);
+            if(rayTraceBlocks == null || !rayTraceBlocks.getBlockPos().equals(tileEntity.getPos())) {
+                match = false;
+            }
+        }
+
+        return match;
     }
 
     // https://github.com/CreativeMD/ItemPhysic/blob/1.12/src/main/java/com/creativemd/itemphysic/EventHandler.java#L82

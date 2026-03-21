@@ -43,6 +43,10 @@ public class JEIUtil {
     private static final Set<Integer> ENCHANTMENTS_FROM_ITEMS = new HashSet<>();
 
     public static boolean isItemStackDesirable(ItemStack stack){
+        return isItemStackDesirable(stack, true);
+    }
+
+    public static boolean isItemStackDesirable(ItemStack stack, boolean tooltipCheck){
         if(stack.isEmpty()){
             return false;
         }
@@ -65,7 +69,7 @@ public class JEIUtil {
         }
 
         // Config Regex
-        if(stackMatchesAnyQuery(stack)){
+        if(tooltipCheck && stackMatchesAnyQuery(stack)){
             return true;
         }
 

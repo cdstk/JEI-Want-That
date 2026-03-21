@@ -1,6 +1,7 @@
 package jeiwt.compat;
 
 import jeiwt.util.JEIUtil;
+import net.minecraft.block.Block;
 import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,8 +16,16 @@ public class CharmUtil {
 
     private static boolean doCharmRender = true;
 
+    public static boolean isTileUnsealedCrate(TileEntity tileEntity) {
+        return isTileCrate(tileEntity) && isBlockUnsealedCrate(tileEntity.getBlockType());
+    }
+
     public static boolean isTileCrate(TileEntity tileEntity) {
         return tileEntity instanceof TileCrate;
+    }
+
+    public static boolean isBlockUnsealedCrate(Block block) {
+        return block instanceof BlockCrate && !((BlockCrate) block).isSealedCrate();
     }
 
     public static boolean checkNestedCrate(ItemStack stack){
