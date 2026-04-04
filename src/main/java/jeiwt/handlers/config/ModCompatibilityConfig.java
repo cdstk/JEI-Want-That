@@ -14,7 +14,7 @@ public class ModCompatibilityConfig {
     @MixinConfig.CompatHandling(
             modid = ModLoadedUtil.CHARM_MODID,
             desired = true,
-            reason = "Requires mod to properly function"
+            warnIngame = false
     )
     public boolean charmDisableTooltip = true;
 
@@ -24,7 +24,7 @@ public class ModCompatibilityConfig {
     @MixinConfig.CompatHandling(
             modid = ModLoadedUtil.QUARK_MODID,
             desired = true,
-            reason = "Requires mod to properly function"
+            warnIngame = false
     )
     public boolean quarkDisableTooltip = true;
 }

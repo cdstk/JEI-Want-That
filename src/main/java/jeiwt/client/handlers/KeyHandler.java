@@ -1,9 +1,13 @@
 package jeiwt.client.handlers;
 
+import jeiwt.handlers.ForgeConfigHandler;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.settings.IKeyConflictContext;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Keyboard;
 
 public class KeyHandler {
@@ -19,6 +23,10 @@ public class KeyHandler {
             return this == other;
         }
     };
+
+    private static boolean displayToggled = false;
+    private static boolean modifiedToggled = false;
+    private static boolean fullToggled = false;
 
     public static KeyBinding enableDisplay;
     public static KeyBinding modifiedTooltip;
@@ -50,7 +58,35 @@ public class KeyHandler {
         MinecraftForge.EVENT_BUS.register(KeyHandler.class);
     }
 
+    public static boolean renderDisplay() {
+        return ForgeConfigHandler.client.keybindsAsToggles ? displayToggled : isKeyDown(enableDisplay);
+    }
+
+    public static boolean renderModifiedTooltip() {
+        return ForgeConfigHandler.client.keybindsAsToggles ? modifiedToggled : isKeyDown(modifiedTooltip);
+    }
+
+    public static boolean renderFullTooltip() {
+        return ForgeConfigHandler.client.keybindsAsToggles ? fullToggled : isKeyDown(fullTooltip);
+    }
+
     public static boolean isKeyDown(KeyBinding keyBinding){
         return Keyboard.isKeyDown(keyBinding.getKeyCode());
+    }
+
+    @SubscribeEvent
+    public static void onGameplayKeyPress(InputEvent.KeyInputEvent event) {
+        if(isKeyDown(enableDisplay) && !enableDisplay.isPressed()) displayToggled = !displayToggled;
+        if(isKeyDown(modifiedTooltip) && !modifiedTooltip.isPressed()) modifiedToggled = !modifiedToggled;
+        if(isKeyDown(fullTooltip) && !fullTooltip.isPressed()) fullToggled = !fullToggled;
+    }
+
+    @SubscribeEvent
+    public static void onGuiKeyPressPre(GuiScreenEvent.KeyboardInputEvent.Pre event) {
+        if(!event.getGui().isFocused()) {
+            if(isKeyDown(enableDisplay)) displayToggled = !displayToggled;
+            if(isKeyDown(modifiedTooltip)) modifiedToggled = !modifiedToggled;
+            if(isKeyDown(fullTooltip)) fullToggled = !fullToggled;
+        }
     }
 }

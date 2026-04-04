@@ -68,13 +68,17 @@ public class JEIUtil {
             return true;
         }
 
+        // Bookmarks
+        if(stackIsBookmarked(stack)){
+            return true;
+        }
+
         // Config Regex
         if(tooltipCheck && stackMatchesAnyQuery(stack)){
             return true;
         }
 
-        // Bookmarks
-        return stackIsBookmarked(stack);
+        return false;
     }
 
     public static boolean checkNestedContainer(ItemStack stack){
@@ -218,7 +222,7 @@ public class JEIUtil {
     }
 
     public static boolean isLineDesirable(ItemStack stack, String line, int lineNumber){
-        if(KeyHandler.isKeyDown(KeyHandler.fullTooltip)) return true;
+        if(KeyHandler.renderFullTooltip()) return true;
 
         if(ForgeConfigProvider.checkLineForLangKeys(line)) return true;
         if(ForgeConfigProvider.checkLineForPatterns(line)) return true;

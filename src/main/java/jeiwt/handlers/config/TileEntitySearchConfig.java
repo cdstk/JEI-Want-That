@@ -19,4 +19,12 @@ public class TileEntitySearchConfig {
     @Config.Comment("Backpacks will be marked regardless of line of sight")
     @Config.Name("Always Show Backpacks (Wearable Backpacks)")
     public boolean wearableBackpacks = true;
+
+    @Config.Comment("Natural Waystones will be marked regardless of line of sight")
+    @Config.Name("Always Show Natural Waystones (Waystones)")
+    public boolean waystonesNatural = true;
+
+    @Config.Comment("Discovered Waystones will be marked regardless of line of sight")
+    @Config.Name("Always Show Known Waystones (Waystones)")
+    public boolean waystonesKnown = true;
 }

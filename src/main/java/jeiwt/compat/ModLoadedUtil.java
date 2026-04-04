@@ -10,10 +10,12 @@ public class ModLoadedUtil {
     public static final String CHARM_MODID = "charm";
     public static final String QUARK_MODID = "quark";
     public static final String WEARABLE_BACKPACKS_MODID = "wearablebackpacks";
+    public static final String WAYSTONES_MODID = "waystones";
 
     public static final LoadedContainer CHARM = new LoadedContainer(CHARM_MODID);
     public static final LoadedContainer QUARK = new LoadedContainer(QUARK_MODID);
     public static final LoadedContainer WEARABLE_BACKPACKS = new LoadedContainer(WEARABLE_BACKPACKS_MODID);
+    public static final LoadedContainer WAYSTONES = new LoadedContainer(WAYSTONES_MODID);
 
     public static final LoadedContainer HAD_ENOUGH_ITEMS = new LoadedContainer(JEI_MODID){
         @Override

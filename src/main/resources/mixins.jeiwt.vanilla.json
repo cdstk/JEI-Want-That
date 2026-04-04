@@ -12,6 +12,7 @@
     "maxShiftBy": 10
   },
   "client": [
-    "vanilla.GuiContainer_InventoryHighlightMixin"
+    "vanilla.GuiContainer_InventoryHighlightMixin",
+    "vanilla.RenderGlobal_InvokerMixin"
   ]
 }

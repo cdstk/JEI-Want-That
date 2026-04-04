@@ -22,7 +22,7 @@ public abstract class GuiContainer_InventoryHighlightMixin {
     )
     private void jeiwt_vanillaGuiContainer_drawSlotBackGround(Slot slot, CallbackInfo ci){
         if (!ForgeConfigHandler.client.backgroundForDesirable) return;
-        if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
+        if (!KeyHandler.renderDisplay()) return;
 
         if(JEIUtil.isItemStackDesirable(slot.getStack())){
             JEIWantThat.setSkipModdedTooltips();

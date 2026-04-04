@@ -25,7 +25,7 @@ public class InventoryHighlightRenderer {
     public static void renderForeground(GuiContainerEvent.DrawForeground event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player == null || mc.world == null || mc.currentScreen == null) return;
-        if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
+        if (!KeyHandler.renderDisplay()) return;
         JEIWantThat.setSkipModdedTooltips();
 
         GuiContainer guiContainer = event.getGuiContainer();
@@ -45,7 +45,7 @@ public class InventoryHighlightRenderer {
         }
 
         backRender.sort((left, right) -> right.yPos - left.yPos);
-        if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip) || KeyHandler.isKeyDown(KeyHandler.fullTooltip)) {
+        if(KeyHandler.renderModifiedTooltip() || KeyHandler.renderFullTooltip()) {
             frontRender.forEach(slot -> {
                 boolean renderSlot = true;
                 switch (ForgeConfigHandler.client.inventoryShiftRender){

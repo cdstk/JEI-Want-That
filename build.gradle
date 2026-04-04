@@ -62,6 +62,7 @@ dependencies {
     compileOnly fg.deobf("curse.maven:charm-${charm_version}")
     compileOnly fg.deobf("curse.maven:quark-${quark_version}")
     compileOnly fg.deobf("curse.maven:wearable-backpacks-rlcraft-edition-${wearable_backpacks_version}")
+    compileOnly fg.deobf("curse.maven:waystones-${waystones_version}")
 }
 
 mixin {

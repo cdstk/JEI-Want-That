@@ -5,10 +5,13 @@ import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.compat.CharmUtil;
 import jeiwt.compat.ModLoadedUtil;
+import jeiwt.compat.WaystonesUtil;
 import jeiwt.compat.WearableBackpacksUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
+import jeiwt.mixin.vanilla.RenderGlobal_InvokerMixin;
 import jeiwt.util.JEIUtil;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -31,6 +34,7 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.client.config.GuiUtils;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.apache.logging.log4j.Level;
+import org.lwjgl.util.vector.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -39,16 +43,31 @@ import java.util.List;
 
 public class WorldTooltipRenderer {
 
+    private static Vec3d clientView = null;
+
     @SubscribeEvent
     public static void onRenderWorldLast(RenderWorldLastEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player == null || mc.world == null) return;
-        if (!KeyHandler.isKeyDown(KeyHandler.enableDisplay)) return;
+        if (!KeyHandler.renderDisplay()) return;
+
+        if(mc.renderGlobal instanceof RenderGlobal_InvokerMixin) {
+            Vector3f vector3f = ((RenderGlobal_InvokerMixin) mc.renderGlobal).invokeGetViewVector(mc.player, event.getPartialTicks());
+            clientView = new Vec3d(vector3f.getX(), vector3f.getY(), vector3f.getZ()).normalize();
+        }
+        else {
+            clientView = mc.player.getLookVec().normalize();
+        }
+
 
         RayTraceResult mouseOverEntity = getMouseOverEntity(mc.player, event.getPartialTicks(), mc);
         List<Entity> entitiesToRender = new ArrayList<>();
         entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> mc.player.canEntityBeSeen(entityItem)));
         entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> true));
+        entitiesToRender.removeIf(entity -> {
+            Vec3d target = new Vec3d(entity.posX + 0.5, entity.posY + 0.5, entity.posZ + 0.5);
+            return !isTargetInViewCone(mc.player, clientView, target, mc.gameSettings.fovSetting + ForgeConfigHandler.client.fovModifier);
+        });
         entitiesToRender.removeIf(entity -> !isEntityDesirable(entity));
         entitiesToRender.sort((left, right) -> {
             BlockPos pos = mc.player.getPosition();
@@ -68,6 +87,10 @@ public class WorldTooltipRenderer {
 
         List<TileEntity> tileEntitiesToRender = new ArrayList<>();
         if(ForgeConfigHandler.tileEntitySearch.enabled) tileEntitiesToRender.addAll(mc.world.loadedTileEntityList);
+        tileEntitiesToRender.removeIf(entity -> {
+            Vec3d target = new Vec3d(entity.getPos().getX() + 0.5, entity.getPos().getY() + 0.5, entity.getPos().getZ() + 0.5);
+            return !isTargetInViewCone(mc.player, clientView, target, mc.gameSettings.fovSetting + ForgeConfigHandler.client.fovModifier);
+        });
         tileEntitiesToRender.removeIf(tileEntity -> !isTileEntityDesirable(tileEntity, mc.player));
         tileEntitiesToRender.sort((left, right) -> {
             BlockPos pos = mc.player.getPosition();
@@ -111,6 +134,37 @@ public class WorldTooltipRenderer {
         if(tileEntity instanceof TileEntityShulkerBox) needsSight = !ForgeConfigHandler.tileEntitySearch.shulkerBoxes;
         else if(ModLoadedUtil.CHARM.isLoaded() && CharmUtil.isTileUnsealedCrate(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.charmCrates;
         else if(ModLoadedUtil.WEARABLE_BACKPACKS.isLoaded() && WearableBackpacksUtil.isTileBackpack(tileEntity)) needsSight = !ForgeConfigHandler.tileEntitySearch.wearableBackpacks;
+        else if(ModLoadedUtil.WAYSTONES.isLoaded() && WaystonesUtil.isTileWaystone(tileEntity)) {
+            IBlockState checkState = tileEntity.getWorld().getBlockState(tileEntity.getPos());
+            TileEntity checkTile = tileEntity;
+            boolean isDummy = WaystonesUtil.isBlockWaystone(checkState.getBlock()) && !WaystonesUtil.isWaystoneBase(checkState);
+
+            if(isDummy){
+                BlockPos belowPos = new BlockPos(tileEntity.getPos().getX(), tileEntity.getPos().getY() - 1, tileEntity.getPos().getZ());
+                TileEntity belowTile = tileEntity.getWorld().getTileEntity(belowPos);
+                if(WaystonesUtil.isTileWaystone(belowTile)) {
+                    checkState = tileEntity.getWorld().getBlockState(belowPos);
+                    checkTile = belowTile;
+                }
+            }
+
+            if(WaystonesUtil.isBlockWaystone(checkState.getBlock())) {
+                if(WaystonesUtil.isWaystoneKnown(checkTile)) {
+                    if(ForgeConfigHandler.tileEntitySearch.waystonesKnown) {
+                        if(isDummy) return false;
+                        needsSight = false;
+                    }
+                }
+                if(WaystonesUtil.isWaystoneNatural(checkTile)) {
+                    if(ForgeConfigHandler.tileEntitySearch.waystonesNatural) {
+                        if(isDummy) return false;
+                        needsSight = false;
+                    }
+                }
+                if(!isDummy && needsSight) return false;
+            }
+        }
+
 
         // Middle Mouse Pick Block
         ItemStack tileStack = ItemStack.EMPTY;
@@ -148,6 +202,17 @@ public class WorldTooltipRenderer {
         }
 
         return match;
+    }
+
+    public static boolean isTargetInViewCone(EntityPlayer player, Vec3d clientView, Vec3d target, float fovDegrees) {
+        Vec3d toTarget = target.subtract(player.getPositionEyes(1.0F)).normalize();
+
+        double dot = clientView.dotProduct(toTarget);
+
+        // Convert FOV to cosine threshold
+        double threshold = Math.cos(Math.toRadians(fovDegrees / 2.0));
+
+        return dot > threshold;
     }
 
     // https://github.com/CreativeMD/ItemPhysic/blob/1.12/src/main/java/com/creativemd/itemphysic/EventHandler.java#L82
@@ -325,7 +390,7 @@ public class WorldTooltipRenderer {
         GlStateManager.translate(posX, posY, posZ);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
-        if(KeyHandler.isKeyDown(KeyHandler.modifiedTooltip)){
+        if(KeyHandler.renderModifiedTooltip()){
             switch (ForgeConfigHandler.client.worldModifyKey){
                 case HIDE_POLE:
                     renderPole = false;

@@ -64,6 +64,10 @@ public class ForgeConfigHandler {
 
 	public static class ClientConfig {
 
+		@Config.Comment("JEI Want That Keybinds will toggle functions. Else they will need to be held down.")
+		@Config.Name("Handle Keybinds As Toggles")
+		public boolean keybindsAsToggles = false;
+
 		@Config.Comment({
 				"What to display when there are no simplified tooltips to display." +
 						"\tITEM_STACK - Item Icon and Stack size" +
@@ -95,6 +99,14 @@ public class ForgeConfigHandler {
 		@Config.Comment("Base Scale for the Tooltip Render")
 		@Config.Name("World Tooltip Base Scale")
 		public float baseScale = 0.025F;
+
+		@Config.Comment({
+				"FOV for World Tooltips is calculated using this value added to the game's FOV setting." +
+				"Other mods may affect the camera and this helps tweak it." +
+				"Lower FOV renders less and higher renders more."
+		})
+		@Config.Name("World FOV Modifier")
+		public int fovModifier = 30;
 
 		@Config.Comment("Minimum Distance before Tooltip Render will be scaled based on distance")
 		@Config.Name("World Minimum Distance For Scaling")
