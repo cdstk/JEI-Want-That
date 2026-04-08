@@ -1,23 +1,18 @@
 package jeiwt.compat;
 
-import jeiwt.handlers.ForgeConfigHandler;
-import vazkii.quark.client.feature.ChestSearchBar;
-
 public class QuarkUtil {
 
+    private static boolean doQuarkRender = true;
+
     public static boolean doQuarkRender(){
-        return !ChestSearchBar.skip;
+        return doQuarkRender;
     }
 
     public static void setSkipQuarkRender(){
-        if(ForgeConfigHandler.modComptability.quarkDisableTooltip) {
-            ChestSearchBar.skip = true;
-        }
+        doQuarkRender = false;
     }
 
     public static void resetSkipQuarkRender(){
-        if(ForgeConfigHandler.modComptability.quarkDisableTooltip) {
-            ChestSearchBar.skip = false;
-        }
+        doQuarkRender = true;
     }
 }
