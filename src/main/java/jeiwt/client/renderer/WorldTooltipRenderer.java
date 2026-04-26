@@ -64,6 +64,8 @@ public class WorldTooltipRenderer {
         List<Entity> entitiesToRender = new ArrayList<>();
         entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> mc.player.canEntityBeSeen(entityItem)));
         entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> true));
+        JEIUtil.getDesirableEntities().forEach(clazz -> entitiesToRender.addAll(mc.world.getEntities(clazz, entity -> !(entity instanceof EntityVillager) && mc.player.canEntityBeSeen(entity))));
+
         entitiesToRender.removeIf(entity -> {
             Vec3d target = new Vec3d(entity.posX + 0.5, entity.posY + 0.5, entity.posZ + 0.5);
             return !isTargetInViewCone(mc.player, clientView, target, mc.gameSettings.fovSetting + ForgeConfigHandler.client.fovModifier);
@@ -124,7 +126,7 @@ public class WorldTooltipRenderer {
                 && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)){
             return true;
         }
-        return false;
+        return ForgeConfigHandler.entitySearch.enabled && JEIUtil.getDisplayForEntity(entity) != ItemStack.EMPTY;
     }
 
     public static boolean isTileEntityDesirable(TileEntity tileEntity, EntityPlayer player){
@@ -346,12 +348,30 @@ public class WorldTooltipRenderer {
             tooltip = JEIUtil.getDesirableTooltip(stack);
             poleHeight = 1F;
         }
-        else if(entity instanceof EntityVillager) {
-            stack = ForgeConfigProvider.getVillagerTooltipItem();
-            tooltip = entity.hasCustomName()
-                    ? Collections.singletonList(entity.getDisplayName().getFormattedText())
-                    : Collections.singletonList(entity.getName()
-            );
+        else {
+            if(entity instanceof EntityVillager && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)) {
+                stack = ForgeConfigProvider.getVillagerTooltipItem();
+                if((KeyHandler.renderFullTooltip() && ForgeConfigHandler.villagerSearch.worldSwapFullBehavior)
+                        || (!KeyHandler.renderFullTooltip() && !ForgeConfigHandler.villagerSearch.worldSwapFullBehavior)) {
+                    tooltip = entity.hasCustomName()
+                            ? Collections.singletonList(entity.getDisplayName().getFormattedText())
+                            : Collections.singletonList(entity.getName()
+                    );
+                }
+                else {
+                    tooltip = Collections.singletonList(((EntityVillager) entity).getProfessionForge().getRegistryName().toString());
+                }
+            }
+            else {
+                stack = JEIUtil.getDisplayForEntity(entity);
+                if((KeyHandler.renderFullTooltip() && ForgeConfigHandler.entitySearch.worldSwapFullBehavior)
+                    || (!KeyHandler.renderFullTooltip() && !ForgeConfigHandler.entitySearch.worldSwapFullBehavior)) {
+                    tooltip = entity.hasCustomName()
+                            ? Collections.singletonList(entity.getDisplayName().getFormattedText())
+                            : Collections.singletonList(entity.getName()
+                    );
+                }
+            }
             poleHeight = entity.height;
         }
 
@@ -383,11 +403,13 @@ public class WorldTooltipRenderer {
             renderPole = false;
             poleHeight = 0;
         }
+
         boolean renderItemStack = textLines.isEmpty();
         if(ForgeConfigHandler.client.emptyTooltipRender == ForgeConfigHandler.ClientConfig.EmptyTooltipRender.NONE) renderItemStack = false;
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(posX, posY, posZ);
+        if(Minecraft.getMinecraft().gameSettings.thirdPersonView == 2) GlStateManager.rotate(-180F, 1.0F, 0.0F, 0.0F);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
         if(KeyHandler.renderModifiedTooltip()){
@@ -430,7 +452,7 @@ public class WorldTooltipRenderer {
             GlStateManager.pushMatrix();
             if(ForgeConfigHandler.client.worldIconsIgnoreDepth) GlStateManager.disableDepth();
             GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
-            drawX += ForgeConfigHandler.client.xWorldOffset + 1;
+            drawX += ForgeConfigHandler.client.xWorldOffset - 6 + (int) (mc.fontRenderer.getStringWidth(" ") * 3.5F / 2F);
             drawY -= ForgeConfigHandler.client.yWorldOffset - 4;
             GuiUtils.drawContinuousTexturedBox(
                     new ResourceLocation("textures/gui/widgets.png"),

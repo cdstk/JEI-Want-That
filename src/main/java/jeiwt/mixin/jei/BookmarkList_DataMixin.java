@@ -154,6 +154,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
             }
         }
         JEIUtil.modifyBookmarkedItems(stack, stack.getMetadata());
+        JEIUtil.modifyBookmarkedEntities(stack);
         jeiwt$addEnchantmentsFromItemStack(stack);
     }
 
@@ -168,6 +169,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
             }
         }
         JEIUtil.modifyBookmarkedItems(stack, stack.getMetadata(), false);
+        JEIUtil.modifyBookmarkedEntities(stack, false);
         jeiwt$removeEnchantmentsFromItemStack(stack);
     }
 

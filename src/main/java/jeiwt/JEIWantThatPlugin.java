@@ -1,6 +1,7 @@
 package jeiwt;
 
 import fermiumbooter.FermiumRegistryAPI;
+import jeiwt.compat.ModLoadedUtil;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
 
@@ -14,6 +15,7 @@ public class JEIWantThatPlugin implements IFMLLoadingPlugin {
 
 		FermiumRegistryAPI.enqueueMixin(false, "mixins.jeiwt.vanilla.json");
 		FermiumRegistryAPI.enqueueMixin(true, "mixins.jeiwt.jei.json");
+		FermiumRegistryAPI.enqueueMixin(true, "mixins.jeiwt.srp.json", FermiumRegistryAPI.isModPresent(ModLoadedUtil.SRP_MODID));
 	}
 
 	@Override

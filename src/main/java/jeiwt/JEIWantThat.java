@@ -6,16 +6,20 @@ import jeiwt.client.renderer.WorldTooltipRenderer;
 import jeiwt.compat.CharmUtil;
 import jeiwt.compat.ModLoadedUtil;
 import jeiwt.compat.QuarkUtil;
+import jeiwt.compat.SRPUtil;
 import jeiwt.handlers.ForgeConfigProvider;
 import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,6 +53,7 @@ public class JEIWantThat {
         KeyHandler.initKeybind();
         MinecraftForge.EVENT_BUS.register(InventoryHighlightRenderer.class);
         MinecraftForge.EVENT_BUS.register(WorldTooltipRenderer.class);
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     @Mod.EventHandler
@@ -60,6 +65,18 @@ public class JEIWantThat {
             ((IBookmarkList_DataMixin) JEIUtil.bookmarkList).jeiwt$initBookmarkedData();
         }
         completedLoading = true;
+    }
+
+    @SubscribeEvent
+    public void onClientPlayerJoinWorld(EntityJoinWorldEvent event) {
+        if(!ModLoadedUtil.SRP.isLoaded()) return;
+        if(!SRPUtil.needLoginLoad) return;
+
+        if(event.getEntity() == Minecraft.getMinecraft().player) {
+            if(JEIUtil.bookmarkList instanceof IBookmarkList_DataMixin) {
+                ((IBookmarkList_DataMixin) JEIUtil.bookmarkList).jeiwt$initBookmarkedData();
+            }
+        }
     }
 
     // Client

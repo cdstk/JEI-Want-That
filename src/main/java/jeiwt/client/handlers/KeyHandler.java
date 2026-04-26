@@ -71,14 +71,33 @@ public class KeyHandler {
     }
 
     public static boolean isKeyDown(KeyBinding keyBinding){
-        return Keyboard.isKeyDown(keyBinding.getKeyCode());
+        return isKeyboardKey(keyBinding.getKeyCode()) ? Keyboard.isKeyDown(keyBinding.getKeyCode()) : (keyBinding.isKeyDown() || keyBinding.isPressed());
+    }
+
+    public static boolean isKeyboardKeyDown(KeyBinding keyBinding){
+        return isKeyboardKey(keyBinding.getKeyCode()) && isKeyDown(keyBinding);
+    }
+
+    public static boolean isMouseKeyDown(KeyBinding keyBinding){
+        return !isKeyboardKey(keyBinding.getKeyCode()) && isKeyDown(keyBinding);
+    }
+
+    public static boolean isKeyboardKey(int keyCode) {
+        return keyCode >= 0;
     }
 
     @SubscribeEvent
     public static void onGameplayKeyPress(InputEvent.KeyInputEvent event) {
-        if(isKeyDown(enableDisplay) && !enableDisplay.isPressed()) displayToggled = !displayToggled;
-        if(isKeyDown(modifiedTooltip) && !modifiedTooltip.isPressed()) modifiedToggled = !modifiedToggled;
-        if(isKeyDown(fullTooltip) && !fullTooltip.isPressed()) fullToggled = !fullToggled;
+        if(isKeyboardKeyDown(enableDisplay)) displayToggled = !displayToggled;
+        if(isKeyboardKeyDown(modifiedTooltip)) modifiedToggled = !modifiedToggled;
+        if(isKeyboardKeyDown(fullTooltip)) fullToggled = !fullToggled;
+    }
+
+    @SubscribeEvent
+    public static void onGameplayMousePress(InputEvent.MouseInputEvent event) {
+        if(isMouseKeyDown(enableDisplay)) displayToggled = !displayToggled;
+        if(isMouseKeyDown(modifiedTooltip)) modifiedToggled = !modifiedToggled;
+        if(isMouseKeyDown(fullTooltip)) fullToggled = !fullToggled;
     }
 
     @SubscribeEvent
@@ -89,4 +108,6 @@ public class KeyHandler {
             if(isKeyDown(fullTooltip)) fullToggled = !fullToggled;
         }
     }
+
+    // Dedicated in Gui Mouse would go here
 }

@@ -8,9 +8,17 @@ public class VillagerSearchConfig {
     @Config.Name("Search Villager Professions")
     public boolean enabled = true;
 
+    @Config.Comment({
+            "Alternates the \"Full Tooltip\" Key behavior",
+            "\tON - Holding/Toggle shows Profession Registry ID",
+            "\tOFF - Holding/Toggle shows Name"
+    })
+    @Config.Name("World Alternate Full Tooltip Behavior")
+    public boolean worldSwapFullBehavior = false;
+
     @Config.Comment("Item given to RenderTooltipEvent for styling the Tooltip")
     @Config.Name("RenderTooltipEvent Item")
-    public String tooltipItemStyle = "minecraft:record_cat , 1";
+    public String tooltipItemStyle = "minecraft:record_cat , 0";
 
     @Config.Comment({
             "Villager Profession Registry Names to search for, supports wildcards.",

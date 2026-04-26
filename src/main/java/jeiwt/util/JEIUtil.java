@@ -1,8 +1,11 @@
 package jeiwt.util;
 
+import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.compat.CharmUtil;
+import jeiwt.compat.LycanitesMobsUtil;
 import jeiwt.compat.ModLoadedUtil;
+import jeiwt.compat.SRPUtil;
 import jeiwt.handlers.ForgeConfigHandler;
 import jeiwt.handlers.ForgeConfigProvider;
 import mezz.jei.Internal;
@@ -12,19 +15,27 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemEnchantedBook;
+import net.minecraft.item.ItemMonsterPlacer;
 import net.minecraft.item.ItemShulkerBox;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.translation.I18n;
+import net.minecraftforge.fml.common.registry.EntityEntry;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import org.apache.logging.log4j.Level;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +50,7 @@ public class JEIUtil {
     private static final Map<Item, Set<Integer>> FILTERED_ITEMS = new HashMap<>();
     private static final Set<Integer> FILTERED_ENCHANTMENTS = new HashSet<>();
     private static final Map<Item, Set<Integer>> BOOKMARKED_ITEMS = new HashMap<>();
+    private static final Map<Class<? extends Entity>, ItemStack> BOOKMARKED_ENTITIES = new HashMap<>();
     private static final Set<Integer> BOOKMARKED_ENCHANTMENTS = new HashSet<>();
     private static final Set<Integer> ENCHANTMENTS_FROM_ITEMS = new HashSet<>();
 
@@ -79,6 +91,14 @@ public class JEIUtil {
         }
 
         return false;
+    }
+
+    public static Collection<Class<? extends Entity>> getDesirableEntities() {
+        return Collections.unmodifiableCollection(BOOKMARKED_ENTITIES.keySet());
+    }
+
+    public static ItemStack getDisplayForEntity(Entity entity) {
+        return BOOKMARKED_ENTITIES.getOrDefault(entity.getClass(), ItemStack.EMPTY);
     }
 
     public static boolean checkNestedContainer(ItemStack stack){
@@ -159,6 +179,7 @@ public class JEIUtil {
 
     public static void initDesirables(){
         BOOKMARKED_ITEMS.clear();
+        BOOKMARKED_ENTITIES.clear();
         BOOKMARKED_ENCHANTMENTS.clear();
         ENCHANTMENTS_FROM_ITEMS.clear();
     }
@@ -196,6 +217,19 @@ public class JEIUtil {
         }
     }
 
+    public static void modifyBookmarkedEntities(ItemStack stack) { modifyBookmarkedEntities(stack, true); }
+    public static void modifyBookmarkedEntities(ItemStack stack, boolean add){
+        Class<? extends Entity> clazz = JEIUtil.getEntityClassFromStack(stack);
+        if(clazz == null) return;
+
+        if(add){
+            BOOKMARKED_ENTITIES.put(clazz, stack);
+        }
+        else {
+            BOOKMARKED_ENTITIES.remove(clazz);
+        }
+    }
+
     public static void modifyBookmarkedEnchantments(int enchantmentID) { modifyBookmarkedEnchantments(enchantmentID, true); }
     public static void modifyBookmarkedEnchantments(int enchantmentID, boolean add){
         if(add){
@@ -214,6 +248,31 @@ public class JEIUtil {
         else {
             ENCHANTMENTS_FROM_ITEMS.remove(enchantmentID);
         }
+    }
+
+    public static Class<? extends Entity> getEntityClassFromStack(ItemStack stack) {
+        boolean isSpawnEgg = stack.getItem() instanceof ItemMonsterPlacer;
+        ResourceLocation entityID = ItemMonsterPlacer.getNamedIdFrom(stack);
+        Class<? extends Entity> clazz = null;
+
+        if(entityID == null && ModLoadedUtil.LYCANITES.isLoaded()) {
+            isSpawnEgg = LycanitesMobsUtil.isSpawnEgg(stack);
+            entityID = LycanitesMobsUtil.getEntityID(stack);
+        }
+
+        if(ForgeRegistries.ENTITIES.containsKey(entityID)) {
+            EntityEntry entityEntry = ForgeRegistries.ENTITIES.getValue(entityID);
+            if(entityEntry != null) {
+                clazz = entityEntry.getEntityClass();
+                if(!isSpawnEgg && entityID != null) JEIWantThat.LOGGER.log(Level.INFO, "{} added by non spawn egg: {}", entityID, stack);
+            }
+        }
+
+        if(clazz == null && ModLoadedUtil.SRP.isLoaded()) {
+            clazz = SRPUtil.getEntityClass(stack);
+        }
+
+        return clazz;
     }
 
     public static boolean isLineContainsEnchantment(String line, Enchantment enchantment){
