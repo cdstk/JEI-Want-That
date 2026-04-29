@@ -74,20 +74,20 @@ public class ForgeConfigHandler {
 		public boolean keybindsAsToggles = false;
 
 		@Config.Comment({
-				"What to display when there are no simplified tooltips to display." +
-						"\tITEM_STACK - Item Icon and Stack size" +
-						"\tDISPLAY_NAME - Item Display Name" +
-						"\tNONE - A simple bar"
+				"What to display when there are no simplified tooltips to display.",
+				"\tITEM_STACK - Item Icon and Stack size",
+				"\tDISPLAY_NAME - Item Display Name",
+				"\tNONE - A simple bar"
 		})
 		@Config.Name("Empty Tooltip Render")
 		public EmptyTooltipRender emptyTooltipRender = EmptyTooltipRender.ITEM_STACK;
 		public enum EmptyTooltipRender {ITEM_STACK, DISPLAY_NAME, NONE }
 
 		@Config.Comment({
-				"The \"Modified Tooltip\" Key behavior" +
-						"\tHIDE_POLE - Pole is not rendered" +
-						"\tMOVE_UP_ALL - Pole and tooltip moved up" +
-						"\tMOVE_UP_POLE - Pole shortened"
+				"The \"Modified Tooltip\" Key behavior",
+				"\tHIDE_POLE - Pole is not rendered",
+				"\tMOVE_UP_ALL - Pole and tooltip moved up",
+				"\tMOVE_UP_POLE - Pole shortened"
 		})
 		@Config.Name("World Modified Tooltip Key Behavior")
 		public WorldModifyKeyBehavior worldModifyKey = WorldModifyKeyBehavior.HIDE_POLE;
@@ -106,8 +106,8 @@ public class ForgeConfigHandler {
 		public float baseScale = 0.025F;
 
 		@Config.Comment({
-				"FOV for World Tooltips is calculated using this value added to the game's FOV setting." +
-				"Other mods may affect the camera and this helps tweak it." +
+				"FOV for World Tooltips is calculated using this value added to the game's FOV setting.",
+				"Other mods may affect the camera and this helps tweak it.",
 				"Lower FOV renders less and higher renders more."
 		})
 		@Config.Name("World FOV Modifier")
@@ -139,7 +139,7 @@ public class ForgeConfigHandler {
 		public boolean mouseTargetBlock = true;
 
 		@Config.Comment({
-				"Allows Item Icons to be rendered through blocks, will cause certain items to layer incorrectly." +
+				"Allows Item Icons to be rendered through blocks, will cause certain items to layer incorrectly.",
 				"Incorrect visuals include enchantment glints and 3d models such as chests."
 		})
 		@Config.Name("World Item Icons Render Through Blocks")
@@ -153,11 +153,56 @@ public class ForgeConfigHandler {
 		@Config.Name("Inventory Y Tooltip Offset")
 		public int yInventoryOffset = 0;
 
-		@Config.Comment("Non-Desired Items will be darkened in Inventory with the \"Modified Tooltip\" Key")
+		@Config.Comment("Non-Desired Items will be darkened in Inventory with the \"Enable Display\" Key")
 		@Config.Name("Inventory Darken Non-Desirable")
 		public boolean darkenNonDesirable = true;
 
-		@Config.Comment("Desired items Items be overlay a contrasting background in Inventory with the \"Modified Tooltip\" Key")
+		// https://www.myfixguide.com/color-converter/
+		@Config.Comment({
+				"ARGB Hexadecimal Color Code, can be exactly specified, invalid values default to 0x80000000.",
+				"Recommended to modify \"Inventory Darken - Color Visibility\""
+		})
+		@Config.Name("Inventory Darken - Base Color")
+		public String inventoryDarkBase = "00000000";
+
+		@Config.Comment({
+				"Presets to modify the color visibility, the default Base Color is black 0x00000000",
+				"The value is added to the base value, use TRANSPARENT for full control of custom colors"
+		})
+		@Config.Name("Inventory Darken - Color Visibility")
+		public AlphaModifier inventoryDarkAlpha = AlphaModifier.LESS;
+		public enum AlphaModifier {
+			TRANSPARENT(0x00000000),
+			LESS(0x20000000),
+			NORMAL(0x40000000),
+			MORE(0x80000000),
+			SOLID(0xF0000000);
+
+			public final int value;
+			AlphaModifier(int value) {
+				this.value = value;
+			}
+		}
+
+		@Config.Comment("Desired Items will be lightened in Inventory with the \"Enable Display\" Key")
+		@Config.Name("Inventory Lighten Desirable")
+		public boolean lightenDesirable = true;
+
+		@Config.Comment({
+				"ARGB Hexadecimal Color Code, can be exactly specified, invalid values default to 0x80000000.",
+				"Recommended to modify \"Inventory Lighten - Color Visibility\""
+		})
+		@Config.Name("Inventory Lighten - Base Color")
+		public String inventoryLightBase = "00FFFFFF";
+
+		@Config.Comment({
+				"Presets to modify the color visibility, the default Base Color is white 0x00FFFFFF",
+				"The value is added to the base value, use TRANSPARENT for full control of custom colors"
+		})
+		@Config.Name("Inventory Lighten - Color Visibility")
+		public AlphaModifier inventoryLightAlpha = AlphaModifier.LESS;
+
+		@Config.Comment("Desired items Items be overlay a contrasting background in Inventory with the \"Enable Display\" Key")
 		@Config.Name("Inventory Background for Desirable")
 		public boolean backgroundForDesirable = true;
 

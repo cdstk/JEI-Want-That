@@ -27,6 +27,15 @@ public class ForgeConfigProvider {
         ForgeConfigProvider.initVillagerConfig();
     }
 
+    public static int getSignedHexadecimal(String hex) {
+        int value = Integer.MIN_VALUE;
+        try {
+            value = Integer.parseUnsignedInt(hex, 16);
+        }
+        catch (NumberFormatException ignored) {}
+        return value;
+    }
+
     public static boolean checkLineForLangKeys(String line){
         for(String langKey : ForgeConfigHandler.tooltipLineSearch.langKeys){
             if(JEIWantThat.checkLangKey(langKey, line)) return true;

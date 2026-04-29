@@ -3,6 +3,7 @@ package jeiwt.client.renderer;
 import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.handlers.ForgeConfigHandler;
+import jeiwt.handlers.ForgeConfigProvider;
 import jeiwt.util.JEIUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -43,6 +44,9 @@ public class InventoryHighlightRenderer {
         if(ForgeConfigHandler.client.darkenNonDesirable) {
             backRender.forEach(InventoryHighlightRenderer::drawDarkenSlot);
         }
+        if(ForgeConfigHandler.client.lightenDesirable) {
+            frontRender.forEach(InventoryHighlightRenderer::drawLightenSlot);
+        }
 
         backRender.sort((left, right) -> right.yPos - left.yPos);
         if(KeyHandler.renderModifiedTooltip() || KeyHandler.renderFullTooltip()) {
@@ -78,14 +82,35 @@ public class InventoryHighlightRenderer {
         GlStateManager.disableLighting();
         GlStateManager.disableDepth();
         GlStateManager.colorMask(true, true, true, false);
+        int color = ForgeConfigProvider.getSignedHexadecimal(ForgeConfigHandler.client.inventoryDarkBase) + ForgeConfigHandler.client.inventoryDarkAlpha.value;
         GuiUtils.drawGradientRect(
                 0,
                 slot.xPos,
                 slot.yPos,
                 slot.xPos + 16,
                 slot.yPos + 16,
-                0x80000000,
-                0x80000000
+                color,
+                color
+        );
+        GlStateManager.colorMask(true, true, true, true);
+        GlStateManager.enableDepth();
+        GlStateManager.enableAlpha();
+    }
+
+    public static void drawLightenSlot(Slot slot) {
+        GlStateManager.disableBlend();
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.colorMask(true, true, true, false);
+        int color = ForgeConfigProvider.getSignedHexadecimal(ForgeConfigHandler.client.inventoryLightBase) + ForgeConfigHandler.client.inventoryLightAlpha.value;
+        GuiUtils.drawGradientRect(
+                0,
+                slot.xPos,
+                slot.yPos,
+                slot.xPos + 16,
+                slot.yPos + 16,
+                color,
+                color
         );
         GlStateManager.colorMask(true, true, true, true);
         GlStateManager.enableDepth();
