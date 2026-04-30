@@ -3,6 +3,7 @@ package jeiwt.handlers;
 import jeiwt.JEIWantThat;
 import jeiwt.handlers.config.EnchantmentSearchConfig;
 import jeiwt.handlers.config.EntitySearchConfig;
+import jeiwt.handlers.config.InventoryTooltipConfig;
 import jeiwt.handlers.config.ModCompatibilityConfig;
 import jeiwt.handlers.config.TileEntitySearchConfig;
 import jeiwt.handlers.config.TooltipLineSearchConfig;
@@ -145,14 +146,6 @@ public class ForgeConfigHandler {
 		@Config.Name("World Item Icons Render Through Blocks")
 		public boolean worldIconsIgnoreDepth = true;
 
-		@Config.Comment("X Offset for Tooltips rendered in the Inventory")
-		@Config.Name("Inventory X Tooltip Offset")
-		public int xInventoryOffset = 6;
-
-		@Config.Comment("Y Offset for Tooltips rendered in the Inventory")
-		@Config.Name("Inventory Y Tooltip Offset")
-		public int yInventoryOffset = 0;
-
 		@Config.Comment("Non-Desired Items will be darkened in Inventory with the \"Enable Display\" Key")
 		@Config.Name("Inventory Darken Non-Desirable")
 		public boolean darkenNonDesirable = true;
@@ -206,15 +199,13 @@ public class ForgeConfigHandler {
 		@Config.Name("Inventory Background for Desirable")
 		public boolean backgroundForDesirable = true;
 
-		@Config.Comment({
-				"Which Tooltip to render with the \"Modified Tooltip\" Key." +
-						"\tVERTICAL - Items in the same column as the hovered slot" +
-						"\tHORIZONTAL - Items in the same row as the hovered slot" +
-						"\tALL - All Items"
-		})
-		@Config.Name("Inventory Key Bind Behavior")
-		public InventoryShiftRender inventoryShiftRender = InventoryShiftRender.VERTICAL;
-		public enum InventoryShiftRender {VERTICAL, HORIZONTAL, ALL }
+		@Config.Comment("The contrasting background will not be shown and only the border effect will be shown")
+		@Config.Name("Inventory Background for Desirable - Border Only")
+		public boolean backgroundTransparent = true;
+
+		@Config.Comment("Displays when using the \"Modified Tooltip\" and \"Full Tooltip\" Key")
+		@Config.Name("Inventory Item Preview Tooltips")
+		public InventoryTooltipConfig inventoryTooltip = new InventoryTooltipConfig();
 	}
 
 	@Mod.EventBusSubscriber(modid = JEIWantThat.MODID)
