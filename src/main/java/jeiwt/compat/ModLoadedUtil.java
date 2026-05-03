@@ -1,6 +1,8 @@
 package jeiwt.compat;
 
 import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.versioning.DefaultArtifactVersion;
+import net.minecraftforge.fml.common.versioning.VersionRange;
 
 // Nischhelm Style
 public class ModLoadedUtil {
@@ -13,6 +15,7 @@ public class ModLoadedUtil {
     public static final String SRP_MODID = "srparasites";
     public static final String WEARABLE_BACKPACKS_MODID = "wearablebackpacks";
     public static final String WAYSTONES_MODID = "waystones";
+    public static final String AAAM_MODID = "antiqueatlasautomarker";
 
     public static final LoadedContainer CHARM = new LoadedContainer(CHARM_MODID);
     public static final LoadedContainer LYCANITES = new LoadedContainer(LYCANITES_MODID);
@@ -20,26 +23,26 @@ public class ModLoadedUtil {
     public static final LoadedContainer SRP = new LoadedContainer(SRP_MODID);
     public static final LoadedContainer WEARABLE_BACKPACKS = new LoadedContainer(WEARABLE_BACKPACKS_MODID);
     public static final LoadedContainer WAYSTONES = new LoadedContainer(WAYSTONES_MODID);
+    public static final LoadedContainer AAAM = new LoadedContainer(AAAM_MODID);
 
-    public static final LoadedContainer HAD_ENOUGH_ITEMS = new LoadedContainer(JEI_MODID){
-        @Override
-        public boolean isLoaded(){
-            if(this.isLoaded == null){
-                this.isLoaded = false;
-                String[] arrOfStr = Loader.instance().getIndexedModList().get(JEI_MODID).getVersion().split("\\.");
-                try {
-                    if (Integer.parseInt(String.valueOf(arrOfStr[1])) > 28) {
-                        this.isLoaded = true;
-                    }
-                }
-                catch (Exception ignored) {}
-            }
-            return this.isLoaded;
+    public static final LoadedContainer JEI = new LoadedContainer(JEI_MODID);
+    public static final String HEI_VERSION = "[4.29,)";
+
+    // Nischhelm style
+    public static boolean versionInRange(LoadedContainer container, String version) {
+        if (!container.isLoaded()) return false;
+        VersionRange range;
+        try {
+            range = VersionRange.createFromVersionSpec(version);
+        } catch (Exception e) {
+            return false;
         }
-    };
+        return range.containsVersion(container.getVersion());
+    }
 
-    public static class LoadedContainer {
-        protected Boolean isLoaded = null;
+    public static class LoadedContainer{
+        private Boolean isLoaded = null;
+        private DefaultArtifactVersion version;
         private final String key;
         private LoadedContainer(String key){
             this.key = key;
@@ -47,6 +50,10 @@ public class ModLoadedUtil {
         public boolean isLoaded(){
             if(this.isLoaded == null) isLoaded = Loader.isModLoaded(key);
             return isLoaded;
+        }
+        public DefaultArtifactVersion getVersion(){
+            if(version == null) version = new DefaultArtifactVersion(Loader.instance().getIndexedModList().get(key).getVersion());
+            return version;
         }
     }
 }

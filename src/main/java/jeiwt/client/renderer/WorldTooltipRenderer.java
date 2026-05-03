@@ -3,6 +3,7 @@ package jeiwt.client.renderer;
 import com.google.common.base.Predicates;
 import jeiwt.JEIWantThat;
 import jeiwt.client.handlers.KeyHandler;
+import jeiwt.compat.AAAMHandler;
 import jeiwt.compat.CharmUtil;
 import jeiwt.compat.ModLoadedUtil;
 import jeiwt.compat.WaystonesUtil;
@@ -113,6 +114,7 @@ public class WorldTooltipRenderer {
         JEIWantThat.setSkipModdedTooltips();
         tileEntitiesToRender.forEach(tileEntity -> renderTileEntity(tileEntity, event.getPartialTicks()));
         entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
+        if(ModLoadedUtil.AAAM.isLoaded()) AAAMHandler.renderMarkers();
         JEIWantThat.resetSkipModdedTooltips();
     }
 
@@ -349,17 +351,21 @@ public class WorldTooltipRenderer {
             poleHeight = 1F;
         }
         else {
-            if(entity instanceof EntityVillager && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)) {
+            if(entity instanceof EntityVillager) {
+                EntityVillager villager = (EntityVillager) entity;
                 stack = ForgeConfigProvider.getVillagerTooltipItem();
-                if((KeyHandler.renderFullTooltip() && ForgeConfigHandler.villagerSearch.worldSwapFullBehavior)
-                        || (!KeyHandler.renderFullTooltip() && !ForgeConfigHandler.villagerSearch.worldSwapFullBehavior)) {
-                    tooltip = entity.hasCustomName()
-                            ? Collections.singletonList(entity.getDisplayName().getFormattedText())
-                            : Collections.singletonList(entity.getName()
-                    );
+                if(ModLoadedUtil.AAAM.isLoaded() && villager.getProfessionForge().getRegistryName().toString().equals("minecraft:librarian")) {
+                    tooltip = AAAMHandler.tryGettingMarkerText(villager);
                 }
-                else {
-                    tooltip = Collections.singletonList(((EntityVillager) entity).getProfessionForge().getRegistryName().toString());
+                if(tooltip.isEmpty() && ForgeConfigProvider.checkVillagerProfession(villager)) {
+                    if (ForgeConfigHandler.villagerSearch.worldSwapFullBehavior == KeyHandler.renderFullTooltip()) {
+                        tooltip = entity.hasCustomName()
+                                ? Collections.singletonList(entity.getDisplayName().getFormattedText())
+                                : Collections.singletonList(entity.getName()
+                        );
+                    } else {
+                        tooltip = Collections.singletonList((villager).getProfessionForge().getRegistryName().toString());
+                    }
                 }
             }
             else {
@@ -396,7 +402,7 @@ public class WorldTooltipRenderer {
         );
     }
 
-    private static void renderTooltip(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc){
+    public static void renderTooltip(@Nonnull final ItemStack stack, List<String> textLines, double posX, double posY, double posZ, int drawX, int drawY, float poleHeight, float baseScale, float distanceScale, Minecraft mc) {
         List<String> blankLines = new ArrayList<>();
         boolean renderPole = true;
         if(ForgeConfigHandler.client.poleDisable){
@@ -411,7 +417,9 @@ public class WorldTooltipRenderer {
         GlStateManager.translate(posX, posY, posZ);
         if(Minecraft.getMinecraft().gameSettings.thirdPersonView == 2) GlStateManager.rotate(-180F, 1.0F, 0.0F, 0.0F);
         GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        if(ForgeConfigHandler.client.worldHingePoint == ForgeConfigHandler.ClientConfig.HingePoint.BASE) {
+            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        }
         if(KeyHandler.renderModifiedTooltip()){
             switch (ForgeConfigHandler.client.worldModifyKey){
                 case HIDE_POLE:
@@ -448,6 +456,9 @@ public class WorldTooltipRenderer {
 
         GlStateManager.disableRescaleNormal();
         enableWorldOverlayStandardItemLighting();
+        if(ForgeConfigHandler.client.worldHingePoint == ForgeConfigHandler.ClientConfig.HingePoint.INFO) {
+            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        }
         if(renderItemStack) {
             GlStateManager.pushMatrix();
             if(ForgeConfigHandler.client.worldIconsIgnoreDepth) GlStateManager.disableDepth();
@@ -499,19 +510,19 @@ public class WorldTooltipRenderer {
         GlStateManager.popMatrix();
     }
 
-    // GuiIngame.renderHotbar()
-    private static void drawItemStack(ItemStack stack, int mouseX, int mouseY, FontRenderer font){
-        Minecraft mc = Minecraft.getMinecraft();
-        mc.getRenderItem().renderItemAndEffectIntoGUI(stack, mouseX + 3, mouseY + 4);
-        mc.getRenderItem().renderItemOverlayIntoGUI(font, stack, mouseX + 3, mouseY + 4, null);
-    }
-
     // TODO Find angle matching RenderHelper.enableGUIStandardItemLighting()
-    private static void enableWorldOverlayStandardItemLighting() {
+    public static void enableWorldOverlayStandardItemLighting() {
         GlStateManager.pushMatrix();
 //        GlStateManager.rotate(0, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(-45, 1.0F, 0.0F, 0.0F);
         RenderHelper.enableStandardItemLighting();
         GlStateManager.popMatrix();
+    }
+
+    // GuiIngame.renderHotbar()
+    public static void drawItemStack(ItemStack stack, int mouseX, int mouseY, FontRenderer font){
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.getRenderItem().renderItemAndEffectIntoGUI(stack, mouseX + 3, mouseY + 4);
+        mc.getRenderItem().renderItemOverlayIntoGUI(font, stack, mouseX + 3, mouseY + 4, null);
     }
 }

@@ -90,7 +90,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
             remap = false
     )
     private void jeiwt_jeiBookmarkList_notifyListenersOfChangeForHEI(CallbackInfo ci){
-        if(ModLoadedUtil.HAD_ENOUGH_ITEMS.isLoaded()) jeiwt$initBookmarkedData();
+        if(ModLoadedUtil.versionInRange(ModLoadedUtil.JEI, ModLoadedUtil.HEI_VERSION)) jeiwt$initBookmarkedData();
     }
 
     @Unique
@@ -179,7 +179,7 @@ public abstract class BookmarkList_DataMixin implements IBookmarkList_DataMixin 
         JEIUtil.initDesirables();
         this.getIngredientList().forEach(element -> {
             Object ingredient = element.getIngredient();
-            if(ModLoadedUtil.HAD_ENOUGH_ITEMS.isLoaded() && HadEnoughItemsUtil.isBookmarkItem(ingredient)) {
+            if(ModLoadedUtil.versionInRange(ModLoadedUtil.JEI, ModLoadedUtil.HEI_VERSION) && HadEnoughItemsUtil.isBookmarkItem(ingredient)) {
                 ingredient = HadEnoughItemsUtil.getIngredientFromBookmark(ingredient);
             }
 

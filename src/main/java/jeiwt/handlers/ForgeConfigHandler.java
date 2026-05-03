@@ -55,17 +55,26 @@ public class ForgeConfigHandler {
 //		@Config.Name("String Array")
 //		public String[] strArray = { " ", " " };
 //
+//		@Config.Name("A Bool")
+//		public boolean aBool = true;
+//
 //		@Config.Name("X Int")
 //		public int xInt = 0;
 //
 //		@Config.Name("Y Int")
 //		public int yInt = 0;
 //
+//		@Config.Name("Z Int")
+//		public int zInt = 0;
+//
 //		@Config.Name("X Float")
 //		public float xFloat = 0;
 //
 //		@Config.Name("Y Float")
 //		public float yFloat = 0;
+//
+//		@Config.Name("Z Float")
+//		public float zFloat = 0;
 //	}
 
 	public static class ClientConfig {
@@ -145,6 +154,11 @@ public class ForgeConfigHandler {
 		})
 		@Config.Name("World Item Icons Render Through Blocks")
 		public boolean worldIconsIgnoreDepth = true;
+
+		@Config.Comment("The point where the tooltip will bend to \"face\" the player.")
+		@Config.Name("World Hinge Point")
+		public HingePoint worldHingePoint = HingePoint.BASE;
+		public enum HingePoint {NONE, BASE, INFO}
 
 		@Config.Comment("Non-Desired Items will be darkened in Inventory with the \"Enable Display\" Key")
 		@Config.Name("Inventory Darken Non-Desirable")

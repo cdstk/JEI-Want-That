@@ -143,6 +143,7 @@ public class JEIUtil {
 
         NBTTagList enchantmentsNBT = stack.getEnchantmentTagList();
         if(!enchantmentsNBT.isEmpty()){
+            if(ForgeConfigHandler.enchantmentSearch.allBooks) return true;
             for (int i = 0; i < (ForgeConfigHandler.enchantmentSearch.matchTopOnly ? 1 : enchantmentsNBT.tagCount()); ++i) {
                 NBTTagCompound nbttagcompound = enchantmentsNBT.getCompoundTagAt(i);
                 int id = nbttagcompound.getShort("id");
