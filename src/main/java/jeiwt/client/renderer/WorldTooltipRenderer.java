@@ -63,9 +63,9 @@ public class WorldTooltipRenderer {
 
         RayTraceResult mouseOverEntity = getMouseOverEntity(mc.player, event.getPartialTicks(), mc);
         List<Entity> entitiesToRender = new ArrayList<>();
-        entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> mc.player.canEntityBeSeen(entityItem)));
+        entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> canShowToPlayer(mc.player, entityItem)));
         entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> true));
-        JEIUtil.getDesirableEntities().forEach(clazz -> entitiesToRender.addAll(mc.world.getEntities(clazz, entity -> !(entity instanceof EntityVillager) && mc.player.canEntityBeSeen(entity))));
+        JEIUtil.getDesirableEntities().forEach(clazz -> entitiesToRender.addAll(mc.world.getEntities(clazz, entity -> !(entity instanceof EntityVillager) && canShowToPlayer(mc.player, entity))));
 
         entitiesToRender.removeIf(entity -> {
             Vec3d target = new Vec3d(entity.posX + 0.5, entity.posY + 0.5, entity.posZ + 0.5);
@@ -116,6 +116,10 @@ public class WorldTooltipRenderer {
         entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
         if(ModLoadedUtil.AAAM.isLoaded()) AAAMHandler.renderMarkers();
         JEIWantThat.resetSkipModdedTooltips();
+    }
+
+    public static boolean canShowToPlayer(EntityPlayer fromEntity, Entity toEntity) {
+        return fromEntity.canEntityBeSeen(toEntity) || fromEntity.getDistance(toEntity) <= fromEntity.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() + 5F;
     }
 
     public static boolean isEntityDesirable(Entity entity){
