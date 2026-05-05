@@ -8,8 +8,8 @@ import net.minecraftforge.common.config.Config;
 @MixinConfig(name = JEIWantThat.MODID)
 public class ModCompatibilityConfig {
 
-    @Config.Comment("Mod Compatibility")
-    @Config.Name("Antique Atlas")
+    @Config.Comment("Antique Atlas Auto Marker")
+    @Config.Name("Antique Atlas Auto Marker")
     public final AntiqueAtlasAutoMarkerConfig aaam = new AntiqueAtlasAutoMarkerConfig();
 
     @Config.Comment("Prevent Charm Crate contents tooltip from being rendered by JEI Want That")
