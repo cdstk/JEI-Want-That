@@ -16,7 +16,11 @@ public class TooltipLineSearchConfig {
             ".*Sockets.*"
     };
 
-    @Config.Comment("")
+    @Config.Comment({
+            "Regex Patterns, except a Mod ID or Item ID can be specified, a comma separates Item ID from Regex",
+            "\tSpecific Item - modid:itemname",
+            "\tAll mod's items - modid:*"
+    })
     @Config.Name("Per Item Regex Patterns")
     public String[] perItemRegexPatterns = {
             "iceandfire:*,.*Sockets.*"
