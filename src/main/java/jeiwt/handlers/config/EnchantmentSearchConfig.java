@@ -6,7 +6,7 @@ public class EnchantmentSearchConfig {
 
     @Config.Comment("If an item has Applied Enchantments, display the enchantments")
     @Config.Name("Search Applied on Items")
-    public boolean enabled = false;
+    public boolean enabled = true;
 
     @Config.Comment("If an item has Applied Enchantments, display only the top one")
     @Config.Name("Search Applied Top Only")

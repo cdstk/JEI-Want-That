@@ -2,6 +2,8 @@ package jeiwt.client.renderer;
 
 import com.google.common.base.Predicates;
 import jeiwt.JEIWantThat;
+import jeiwt.capability.WorldTooltipOverride.IWorldTooltipOverride;
+import jeiwt.capability.WorldTooltipOverride.WorldTooltipOverrideHandler;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.compat.AAAMHandler;
 import jeiwt.compat.CharmUtil;
@@ -39,10 +41,11 @@ import org.lwjgl.util.vector.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class WorldTooltipRenderer {
+
+    // TODO refactor for craft tweaker support/clarity, bloated since all the additions
 
     private static Vec3d clientView = null;
 
@@ -50,6 +53,7 @@ public class WorldTooltipRenderer {
     public static void onRenderWorldLast(RenderWorldLastEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player == null || mc.world == null) return;
+        if (!mc.world.isRemote) return;
         if (!KeyHandler.renderDisplay()) return;
 
         if(mc.renderGlobal instanceof RenderGlobal_InvokerMixin) {
@@ -64,7 +68,8 @@ public class WorldTooltipRenderer {
         RayTraceResult mouseOverEntity = getMouseOverEntity(mc.player, event.getPartialTicks(), mc);
         List<Entity> entitiesToRender = new ArrayList<>();
         entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> canShowToPlayer(mc.player, entityItem)));
-        entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> true));
+        entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> ForgeConfigHandler.villagerSearch.enabled));
+        entitiesToRender.addAll(mc.world.getEntities(EntityPlayer.class, entityPlayer -> entityPlayer != mc.player && ForgeConfigHandler.playerSearch.enabled && !entityPlayer.isInvisibleToPlayer(mc.player)));
         JEIUtil.getDesirableEntities().forEach(clazz -> entitiesToRender.addAll(mc.world.getEntities(clazz, entity -> !(entity instanceof EntityVillager) && canShowToPlayer(mc.player, entity))));
 
         entitiesToRender.removeIf(entity -> {
@@ -128,9 +133,11 @@ public class WorldTooltipRenderer {
             return true;
         }
         else if(entity instanceof EntityVillager
-                && ForgeConfigHandler.villagerSearch.enabled
                 && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)){
             return true;
+        }
+        else if(entity instanceof EntityPlayer) {
+            return !entity.isSneaking();
         }
         return ForgeConfigHandler.entitySearch.enabled && JEIUtil.getDisplayForEntity(entity) != ItemStack.EMPTY;
     }
@@ -347,11 +354,19 @@ public class WorldTooltipRenderer {
         int drawY = 0;
         float poleHeight = 0;
         ItemStack stack = ItemStack.EMPTY;
+        String displayName = "";
         List<String> tooltip = new ArrayList<>();
+
+        IWorldTooltipOverride tooltipOverride = entity.getCapability(WorldTooltipOverrideHandler.WORLD_TOOLTIP, null);
+        if(tooltipOverride != null) {
+            if(!tooltipOverride.getDisplayName().isEmpty()) displayName = tooltipOverride.getDisplayName();
+            if(!tooltipOverride.getDescription().isEmpty()) tooltip.add(tooltipOverride.getDescription());
+        }
 
         if(entity instanceof EntityItem) {
             stack = ((EntityItem) entity).getItem();
-            tooltip = JEIUtil.getDesirableTooltip(stack);
+            displayName = ""; // Stack
+            tooltip.addAll(JEIUtil.getDesirableTooltip(stack));
             poleHeight = 1F;
         }
         else {
@@ -359,31 +374,43 @@ public class WorldTooltipRenderer {
                 EntityVillager villager = (EntityVillager) entity;
                 stack = ForgeConfigProvider.getVillagerTooltipItem();
                 if(ModLoadedUtil.AAAM.isLoaded() && villager.getProfessionForge().getRegistryName().toString().equals("minecraft:librarian")) {
-                    tooltip = AAAMHandler.tryGettingMarkerText(villager);
+                    tooltip.clear();
+                    tooltip.addAll(AAAMHandler.tryGettingMarkerText(villager));
                 }
-                if(tooltip.isEmpty() && ForgeConfigProvider.checkVillagerProfession(villager)) {
+                if(ForgeConfigProvider.checkVillagerProfession(villager)) {
                     if (ForgeConfigHandler.villagerSearch.worldSwapFullBehavior == KeyHandler.renderFullTooltip()) {
-                        tooltip = entity.hasCustomName()
-                                ? Collections.singletonList(entity.getDisplayName().getFormattedText())
-                                : Collections.singletonList(entity.getName()
-                        );
-                    } else {
-                        tooltip = Collections.singletonList((villager).getProfessionForge().getRegistryName().toString());
+                        if(displayName.isEmpty()) {
+                            displayName = entity.hasCustomName()
+                                    ? entity.getDisplayName().getFormattedText()
+                                    : entity.getName();
+                        }
+                    }
+                    else {
+                        if(displayName.isEmpty()) {
+                            displayName = ((EntityVillager) entity).getProfessionForge().getRegistryName().toString();
+                        }
                     }
                 }
+            }
+            else if(entity instanceof EntityPlayer) {
+                stack = ForgeConfigProvider.getPlayerTooltipItem();
+                displayName = entity.getName();
             }
             else {
                 stack = JEIUtil.getDisplayForEntity(entity);
                 if((KeyHandler.renderFullTooltip() && ForgeConfigHandler.entitySearch.worldSwapFullBehavior)
                     || (!KeyHandler.renderFullTooltip() && !ForgeConfigHandler.entitySearch.worldSwapFullBehavior)) {
-                    tooltip = entity.hasCustomName()
-                            ? Collections.singletonList(entity.getDisplayName().getFormattedText())
-                            : Collections.singletonList(entity.getName()
-                    );
+                    if(displayName.isEmpty()) {
+                        displayName = entity.hasCustomName()
+                                ? entity.getDisplayName().getFormattedText()
+                                : entity.getName();
+                    }
                 }
             }
             poleHeight = entity.height;
         }
+        if(!displayName.isEmpty())
+            tooltip.add(0, displayName);
 
         for (String s : tooltip) width = Math.max(width, mc.fontRenderer.getStringWidth(s));
         drawX += (-width / 2);

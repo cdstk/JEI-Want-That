@@ -1,5 +1,6 @@
 package jeiwt;
 
+import jeiwt.capability.WorldTooltipOverride.WorldTooltipOverrideHandler;
 import jeiwt.client.handlers.KeyHandler;
 import jeiwt.client.renderer.InventoryHighlightRenderer;
 import jeiwt.client.renderer.WorldTooltipRenderer;
@@ -12,8 +13,10 @@ import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.passive.EntityVillager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -44,7 +47,10 @@ public class JEIWantThat {
 	
 	@Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-
+        // Client
+        WorldTooltipOverrideHandler.registerCapability();
+        MinecraftForge.EVENT_BUS.register(WorldTooltipOverrideHandler.AttachCapabilityHandler.class);
+        MinecraftForge.EVENT_BUS.register(WorldTooltipOverrideHandler.class);
     }
 
     @Mod.EventHandler
@@ -71,12 +77,29 @@ public class JEIWantThat {
     public void onClientPlayerJoinWorld(EntityJoinWorldEvent event) {
         if(!ModLoadedUtil.SRP.isLoaded()) return;
         if(!SRPUtil.needLoginLoad) return;
+        if(!event.getWorld().isRemote) return;
 
         if(event.getEntity() == Minecraft.getMinecraft().player) {
             if(JEIUtil.bookmarkList instanceof IBookmarkList_DataMixin) {
                 ((IBookmarkList_DataMixin) JEIUtil.bookmarkList).jeiwt$initBookmarkedData();
             }
         }
+    }
+
+    private static EntityVillager lastClickedVillager = null;
+    @SubscribeEvent
+    public void onPlayerInteractEntity(PlayerInteractEvent.EntityInteract event) {
+        if(!event.getEntityPlayer().world.isRemote) return;
+
+        if(event.getTarget() instanceof EntityVillager) {
+            lastClickedVillager = (EntityVillager) event.getTarget();
+        }
+        else
+            lastClickedVillager = null;
+    }
+
+    public static EntityVillager getLastClickedVillager() {
+        return lastClickedVillager;
     }
 
     // Client

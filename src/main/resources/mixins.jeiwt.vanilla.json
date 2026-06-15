@@ -13,6 +13,7 @@
   },
   "client": [
     "vanilla.GuiContainer_InventoryHighlightMixin",
+    "vanilla.GuiMerchant_CareerMixin",
     "vanilla.GuiUtils_TooltipBackgroundMixin",
     "vanilla.RenderGlobal_InvokerMixin"
   ]

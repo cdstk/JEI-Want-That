@@ -160,7 +160,7 @@ public class JEIUtil {
         List<String> tooltip = stack.getTooltip(mc.player, mc.gameSettings.advancedItemTooltips ? ITooltipFlag.TooltipFlags.ADVANCED : ITooltipFlag.TooltipFlags.NORMAL);
         for(String line : tooltip){
             if(ForgeConfigProvider.checkLineForLangKeys(line)) return true;
-            if(ForgeConfigProvider.checkLineForPatterns(line)) return true;
+            if(ForgeConfigProvider.checkLineForPatterns(stack, line)) return true;
         }
         return false;
     }
@@ -285,7 +285,7 @@ public class JEIUtil {
         if(KeyHandler.renderFullTooltip()) return true;
 
         if(ForgeConfigProvider.checkLineForLangKeys(line)) return true;
-        if(ForgeConfigProvider.checkLineForPatterns(line)) return true;
+        if(ForgeConfigProvider.checkLineForPatterns(stack, line)) return true;
 
         return false;
     }

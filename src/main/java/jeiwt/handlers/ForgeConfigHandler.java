@@ -5,6 +5,7 @@ import jeiwt.handlers.config.EnchantmentSearchConfig;
 import jeiwt.handlers.config.EntitySearchConfig;
 import jeiwt.handlers.config.InventoryTooltipConfig;
 import jeiwt.handlers.config.ModCompatibilityConfig;
+import jeiwt.handlers.config.PlayerSearchConfig;
 import jeiwt.handlers.config.TileEntitySearchConfig;
 import jeiwt.handlers.config.TooltipLineSearchConfig;
 import jeiwt.handlers.config.VillagerSearchConfig;
@@ -38,6 +39,10 @@ public class ForgeConfigHandler {
 	@Config.Comment("Entity Searching")
 	@Config.Name("Entity Searching")
 	public static final EntitySearchConfig entitySearch = new EntitySearchConfig();
+
+	@Config.Comment("Player Searching")
+	@Config.Name("Player Searching")
+	public static final PlayerSearchConfig playerSearch = new PlayerSearchConfig();
 
 	@Config.Comment("Villager Searching")
 	@Config.Name("Villager Searching")
