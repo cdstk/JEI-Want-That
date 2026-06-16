@@ -23,7 +23,8 @@ public class TooltipLineSearchConfig {
     })
     @Config.Name("Per Item Regex Patterns")
     public String[] perItemRegexPatterns = {
-            "iceandfire:*,.*Sockets.*"
+            "iceandfire:*,.*Sockets.*",
+            "ebwizardry:spell_book,.*Master"
     };
 
     @Config.Comment("Items in JEI's filtered search result will be marked")

@@ -17,12 +17,16 @@ import jeiwt.util.JEIUtil;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EnumPlayerModelParts;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -46,6 +50,10 @@ import java.util.List;
 public class WorldTooltipRenderer {
 
     // TODO refactor for craft tweaker support/clarity, bloated since all the additions
+    // The render translation and distance scale orders for each Gui draw method are all different, FIX
+    // Shared copy pasted GL calls, FIX
+    // Keybind render modifiers are copy pasted, FIX
+    // Magic Numbers used to center, FIX
 
     private static Vec3d clientView = null;
 
@@ -69,7 +77,6 @@ public class WorldTooltipRenderer {
         List<Entity> entitiesToRender = new ArrayList<>();
         entitiesToRender.addAll(mc.world.getEntities(EntityItem.class, entityItem -> canShowToPlayer(mc.player, entityItem)));
         entitiesToRender.addAll(mc.world.getEntities(EntityVillager.class, entityVillager -> ForgeConfigHandler.villagerSearch.enabled));
-        entitiesToRender.addAll(mc.world.getEntities(EntityPlayer.class, entityPlayer -> entityPlayer != mc.player && ForgeConfigHandler.playerSearch.enabled && !entityPlayer.isInvisibleToPlayer(mc.player)));
         JEIUtil.getDesirableEntities().forEach(clazz -> entitiesToRender.addAll(mc.world.getEntities(clazz, entity -> !(entity instanceof EntityVillager) && canShowToPlayer(mc.player, entity))));
 
         entitiesToRender.removeIf(entity -> {
@@ -116,10 +123,36 @@ public class WorldTooltipRenderer {
             return 0;
         });
 
+        List<EntityPlayer> playerToRender = new ArrayList<>();
+        playerToRender.addAll(mc.world.getEntities(EntityPlayer.class, entityPlayer ->
+                entityPlayer != mc.player
+                        && ForgeConfigHandler.playerSearch.enabled
+                        && !entityPlayer.isInvisibleToPlayer(mc.player)
+                        && !entityPlayer.isSneaking()
+        ));
+        playerToRender.sort((left, right) -> {
+            BlockPos pos = mc.player.getPosition();
+            if(mouseOverEntity != null){
+                if (mouseOverEntity.typeOfHit == RayTraceResult.Type.ENTITY && mouseOverEntity.entityHit != null) {
+                    pos = mouseOverEntity.entityHit.getPosition();
+                }
+                else {
+                    pos = mouseOverEntity.getBlockPos();
+                }
+            }
+            double delta = right.getDistanceSq(pos) - left.getDistanceSq(pos);
+            if (delta > 0) return (int) Math.max(1, delta);
+            else if (delta < 0) return (int) Math.min(-1, delta);
+            return 0;
+        });
+
         JEIWantThat.setSkipModdedTooltips();
+        // Renders First
         tileEntitiesToRender.forEach(tileEntity -> renderTileEntity(tileEntity, event.getPartialTicks()));
-        entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
+        entitiesToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks())); // TODO split items, villagers, and entities
         if(ModLoadedUtil.AAAM.isLoaded()) AAAMHandler.renderMarkers();
+        playerToRender.forEach(entity -> renderEntity(entity, event.getPartialTicks()));
+        // Renders Last
         JEIWantThat.resetSkipModdedTooltips();
     }
 
@@ -135,9 +168,6 @@ public class WorldTooltipRenderer {
         else if(entity instanceof EntityVillager
                 && ForgeConfigProvider.checkVillagerProfession((EntityVillager)entity)){
             return true;
-        }
-        else if(entity instanceof EntityPlayer) {
-            return !entity.isSneaking();
         }
         return ForgeConfigHandler.entitySearch.enabled && JEIUtil.getDisplayForEntity(entity) != ItemStack.EMPTY;
     }
@@ -373,7 +403,10 @@ public class WorldTooltipRenderer {
             if(entity instanceof EntityVillager) {
                 EntityVillager villager = (EntityVillager) entity;
                 stack = ForgeConfigProvider.getVillagerTooltipItem();
-                if(ModLoadedUtil.AAAM.isLoaded() && villager.getProfessionForge().getRegistryName().toString().equals("minecraft:librarian")) {
+                if(ModLoadedUtil.AAAM.isLoaded()
+                        && villager.getProfessionForge().getRegistryName().toString().equals("minecraft:librarian")
+                        && !(displayName.contains(I18n.format("entity.Villager.cartographer")))
+                ) {
                     tooltip.clear();
                     tooltip.addAll(AAAMHandler.tryGettingMarkerText(villager));
                 }
@@ -393,8 +426,16 @@ public class WorldTooltipRenderer {
                 }
             }
             else if(entity instanceof EntityPlayer) {
-                stack = ForgeConfigProvider.getPlayerTooltipItem();
-                displayName = entity.getName();
+                drawPlayerHead(
+                        (EntityPlayer) entity,
+                        posX,
+                        posY,
+                        posZ,
+                        baseScale,
+                        distanceScale,
+                        mc
+                );
+                return;
             }
             else {
                 stack = JEIUtil.getDisplayForEntity(entity);
@@ -555,5 +596,64 @@ public class WorldTooltipRenderer {
         Minecraft mc = Minecraft.getMinecraft();
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, mouseX + 3, mouseY + 4);
         mc.getRenderItem().renderItemOverlayIntoGUI(font, stack, mouseX + 3, mouseY + 4, null);
+    }
+
+    // TODO Render like Nametag and pivot from there
+    public static void drawPlayerHead(EntityPlayer entityPlayer, double posX, double posY, double posZ, float baseScale, float distanceScale, Minecraft mc) {
+        NetworkPlayerInfo networkPlayerInfo = mc.player.connection.getPlayerInfo(entityPlayer.getUniqueID());
+        if(networkPlayerInfo == null) return;
+
+        boolean wearingHat = entityPlayer.isWearing(EnumPlayerModelParts.HAT);
+
+        GlStateManager.pushMatrix();
+
+        GlStateManager.translate(posX, posY, posZ);
+        if(Minecraft.getMinecraft().gameSettings.thirdPersonView == 2) GlStateManager.rotate(-180F, 1.0F, 0.0F, 0.0F);
+        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
+        if(ForgeConfigHandler.client.worldHingePoint == ForgeConfigHandler.ClientConfig.HingePoint.BASE) {
+            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        }
+
+        GlStateManager.translate(0, entityPlayer.height * (baseScale / 0.025F), 0.1);
+        GlStateManager.scale(baseScale, baseScale, baseScale);
+
+        GlStateManager.disableRescaleNormal();
+        enableWorldOverlayStandardItemLighting();
+        if(ForgeConfigHandler.client.worldHingePoint == ForgeConfigHandler.ClientConfig.HingePoint.INFO) {
+            GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
+        }
+        GlStateManager.translate(
+                -(ForgeConfigHandler.client.xWorldOffset - 8) * distanceScale,
+                ForgeConfigHandler.client.yWorldOffset - 4,
+                0
+        );
+
+        GlStateManager.pushMatrix();
+        if(ForgeConfigHandler.client.worldIconsIgnoreDepth) GlStateManager.disableDepth();
+        GlStateManager.scale(-distanceScale, -distanceScale, -0.001);
+
+        mc.getTextureManager().bindTexture(networkPlayerInfo.getLocationSkin());
+        Gui.drawScaledCustomSizeModalRect(
+                0, 0,
+                8, 8,
+                8, 8,
+                16, 16,
+                64, 64
+        );
+        if (wearingHat) {
+            Gui.drawScaledCustomSizeModalRect(
+                    0, 0,
+                    40, 8,
+                    8, 8,
+                    16, 16,
+                    64, 64
+            );
+        }
+        GlStateManager.enableAlpha();
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+        GlStateManager.enableRescaleNormal();
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.popMatrix();
     }
 }
