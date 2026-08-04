@@ -13,6 +13,7 @@ import jeiwt.util.IBookmarkList_DataMixin;
 import jeiwt.util.JEIUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -86,20 +87,26 @@ public class JEIWantThat {
         }
     }
 
-    private static EntityVillager lastClickedVillager = null;
+    private static int lastClickedVillagerID = -1;
     @SubscribeEvent
     public void onPlayerInteractEntity(PlayerInteractEvent.EntityInteract event) {
         if(!event.getEntityPlayer().world.isRemote) return;
 
         if(event.getTarget() instanceof EntityVillager) {
-            lastClickedVillager = (EntityVillager) event.getTarget();
+            lastClickedVillagerID = event.getTarget().getEntityId();
         }
         else
-            lastClickedVillager = null;
+            lastClickedVillagerID = -1;
     }
 
     public static EntityVillager getLastClickedVillager() {
-        return lastClickedVillager;
+        if(lastClickedVillagerID != -1) {
+            Entity entity = Minecraft.getMinecraft().world.getEntityByID(lastClickedVillagerID);
+            if(entity instanceof EntityVillager) {
+                return (EntityVillager) entity;
+            }
+        }
+        return null;
     }
 
     // Client
