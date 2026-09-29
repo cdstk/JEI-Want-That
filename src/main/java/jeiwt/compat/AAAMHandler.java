@@ -1,6 +1,5 @@
 package jeiwt.compat;
 
-import antiqueatlasautomarker.config.ConfigHandler;
 import hunternif.mc.atlas.AntiqueAtlasMod;
 import hunternif.mc.atlas.api.AtlasAPI;
 import hunternif.mc.atlas.marker.Marker;
@@ -36,6 +35,9 @@ public abstract class AAAMHandler {
 
     public static List<String> tryGettingMarkerText(EntityVillager villager) {
         List<String> tooltip = new ArrayList<>();
+        if(!ForgeConfigHandler.modComptability.aaam.villagerMarkers) {
+            return tooltip;
+        }
 
         EntityPlayer player = Minecraft.getMinecraft().player;
         List<Integer> atlases = AtlasAPI.getPlayerAtlases(player);
@@ -47,7 +49,7 @@ public abstract class AAAMHandler {
                 .getMarkersDataInDimension(player.dimension)
                 .getAllMarkers()
                 .stream()
-                .filter(marker -> marker.getType().equals(ConfigHandler.enchantments.marker))
+                .filter(marker -> marker.getType().equals(ForgeConfigHandler.modComptability.aaam.markerType))
                 .filter(marker -> Math.abs(marker.getX() - villager.posX) < ForgeConfigHandler.modComptability.aaam.villagerDistance
                                 && Math.abs(marker.getZ() - villager.posZ) < ForgeConfigHandler.modComptability.aaam.villagerDistance)
                 .collect(Collectors.toList());
@@ -78,9 +80,6 @@ public abstract class AAAMHandler {
         }
         if(ForgeConfigHandler.modComptability.aaam.enchantmentMarkers) {
             markersToRender.putIfAbsent(selectedMarker, villager.posY);
-        }
-        if(!ForgeConfigHandler.modComptability.aaam.villagerMarkers) {
-            return tooltip;
         }
 
         String[] split = selectedMarker.getLabel().split(", ");

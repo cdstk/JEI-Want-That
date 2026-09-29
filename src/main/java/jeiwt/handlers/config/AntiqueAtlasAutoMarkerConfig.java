@@ -13,6 +13,10 @@ public class AntiqueAtlasAutoMarkerConfig {
     @Config.Name("Villager Enchantments")
     public boolean villagerMarkers = true;
 
+    @Config.Comment("Marker Type to Filter, should match the one used in AAAM's Config")
+    @Config.Name("Villager Enchantments - Marker Type To Find")
+    public String markerType = "antiqueatlas:book";
+
     @Config.Comment({
             "Display any markers with the type specified in AAAM's \"Enchantments\" Config",
             "Render options are here in with the various \"Marker\" configs"
