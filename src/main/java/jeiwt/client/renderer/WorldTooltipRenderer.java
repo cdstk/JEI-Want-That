@@ -403,12 +403,17 @@ public class WorldTooltipRenderer {
             if(entity instanceof EntityVillager) {
                 EntityVillager villager = (EntityVillager) entity;
                 stack = ForgeConfigProvider.getVillagerTooltipItem();
-                if(ModLoadedUtil.AAAM.isLoaded()
+                if(ModLoadedUtil.AAAM.isLoaded() && AAAMHandler.hasAPI()
                         && villager.getProfessionForge().getRegistryName().toString().equals("minecraft:librarian")
                         && !(displayName.contains(I18n.format("entity.Villager.cartographer")))
                 ) {
                     tooltip.clear();
                     tooltip.addAll(AAAMHandler.tryGettingMarkerText(villager));
+                    if(displayName.isEmpty()) {
+                        displayName = entity.hasCustomName()
+                                ? entity.getDisplayName().getFormattedText()
+                                : entity.getName();
+                    }
                 }
                 if(ForgeConfigProvider.checkVillagerProfession(villager)) {
                     if (ForgeConfigHandler.villagerSearch.worldSwapFullBehavior == KeyHandler.renderFullTooltip()) {

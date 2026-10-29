@@ -31,6 +31,10 @@ import java.util.stream.Collectors;
 
 public abstract class AAAMHandler {
 
+    public static boolean hasAPI() {
+        return ModLoadedUtil.versionInRange(ModLoadedUtil.AAAM, "[1.6.0,)");
+    }
+
     private static final Map<Marker, Double> markersToRender = new HashMap<>();
 
     public static List<String> tryGettingMarkerText(EntityVillager villager) {
