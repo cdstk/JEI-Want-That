@@ -1,5 +1,6 @@
 package jeiwt.compat;
 
+import jeiwt.mixin.hei.BookmarkItem_AccessorMixin;
 import mezz.jei.bookmarks.BookmarkItem;
 
 public class HadEnoughItemsUtil {
@@ -9,8 +10,8 @@ public class HadEnoughItemsUtil {
     }
 
     public static Object getIngredientFromBookmark(Object ingredient) {
-        if(ingredient instanceof BookmarkItem) {
-            return ((BookmarkItem<?>) ingredient).ingredient;
+        if(ingredient instanceof BookmarkItem_AccessorMixin) {
+            return ((BookmarkItem_AccessorMixin<?>) ingredient).jeiwt$getIngredient();
         }
         return null;
     }

@@ -16,12 +16,11 @@ minecraft {
     mappings channel: mappings_channel, version: mappings_version
 
     runs {
-        client {
-            args "--username=InDev"
-
+        server {
             jvmArg "-Dfml.coreMods.load=${mixin_loader_class}"
-            jvmArg "-Dmixin.hotSwap=true"
+//            jvmArg "-Dmixin.hotSwap=true"
             jvmArg "-Dmixin.checks.interfaces=true"
+            jvmArg "-Dmixin.debug.export=true"
 
             workingDirectory project.file('run')
 
@@ -29,16 +28,22 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
         }
 
-        server {
+        client {
+            parent minecraft.runs.server
 
-            jvmArg "-Dfml.coreMods.load=${mixin_loader_class}"
-            jvmArg "-Dmixin.hotSwap=true"
-            jvmArg "-Dmixin.checks.interfaces=true"
+            args "--username=InDev"
+        }
 
-            workingDirectory project.file('run')
+        clientAllMods {
+            parent minecraft.runs.client
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
+            workingDirectory project.file('runPack')
+        }
+
+        serverAllMods {
+            parent minecraft.runs.server
+
+            workingDirectory project.file('runPack')
         }
     }
 }
@@ -46,7 +51,28 @@ minecraft {
 repositories {
     flatDir { dirs 'libs' }
     maven { url = 'https://www.cursemaven.com' }
+    maven { url = "https://maven.k-4u.nl" }
 }
+
+def runOptionalMods = gradle.startParameter.taskNames.any { it.startsWith('run') && it.endsWith('AllMods')}
+def requiredImplementation = [
+        "curse.maven:fermiumbooter-${fermiumbooter_version}",
+        "curse.maven:jei-${jei_version}"
+]
+def optionalRuntime = [
+        "curse.maven:AutoRegLib-${autoreglib_version}",
+        "curse.maven:baubles-${baubles_version}"
+]
+def optionalImplementation = [
+        "curse.maven:antique-atlas-${antiqueatlas_version}",
+        "curse.maven:antiqueatlasautomarker-${aaam_version}",
+        "curse.maven:charm-${charm_version}",
+        "curse.maven:lycanitesmobs-${lycanitesmobs_version}",
+        "curse.maven:scape-and-run-parasites-${srparasites_version}",
+        "curse.maven:quark-${quark_version}",
+        "curse.maven:waystones-${waystones_version}",
+        "curse.maven:wearable-backpacks-rlcraft-edition-${wearable_backpacks_version}"
+]
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -56,18 +82,19 @@ dependencies {
     compileOnly "io.github.llamalad7:mixinextras-common:${mixin_extras_version}"
     annotationProcessor "io.github.llamalad7:mixinextras-common:${mixin_extras_version}"
 
-    implementation fg.deobf("curse.maven:fermiumbooter-${fermiumbooter_version}")
-	
-    implementation fg.deobf("curse.maven:jei-${jei_version}")
-    compileOnly fg.deobf("curse.maven:charm-${charm_version}")
-    compileOnly fg.deobf("curse.maven:quark-${quark_version}")
-    compileOnly fg.deobf("curse.maven:wearable-backpacks-rlcraft-edition-${wearable_backpacks_version}")
-    compileOnly fg.deobf("curse.maven:waystones-${waystones_version}")
-    compileOnly fg.deobf("curse.maven:lycanitesmobs-${lycanitesmobs_version}")
-    compileOnly fg.deobf("curse.maven:antique-atlas-${antiqueatlas_version}")
-    compileOnly fg.deobf("curse.maven:antiqueatlasautomarker-${aaam_version}")
+    implementation fg.deobf('io.github.meldexun:betterconfig:1.12.2-1.3.0')
 
-    compileOnly fg.deobf("libs:SRParasites:${srparasites_version}") // Third party distro disabled
+    requiredImplementation.each { dep ->
+        implementation fg.deobf(dep)
+    }
+
+    optionalRuntime.each { dep ->
+        if (runOptionalMods) runtimeOnly fg.deobf(dep)
+    }
+    optionalImplementation.each { dep ->
+        if (runOptionalMods) implementation fg.deobf(dep)
+        else compileOnly fg.deobf(dep)
+    }
 }
 
 mixin {
@@ -102,38 +129,31 @@ processResources {
 
 jar {
     manifest {
-        def attr = [:]
-        attr['Specification-Title']         = mod_name
-        attr['Specification-Vendor']        = mod_author
-        attr['Specification-Version']       = '1'
-        attr['Implementation-Title']        = mod_name
-        attr['Implementation-Vendor']       = mod_author
-        attr['Implementation-Version']      = mod_version
-        attr['Implementation-Timestamp']    = new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        attr['FMLCorePlugin']               = mixin_loader_class
-        attr['FMLCorePluginContainsFMLMod'] = 'true'
-        attr['TweakClass']                  = 'org.spongepowered.asm.launch.MixinTweaker'
-        attr['ForceLoadAsMod'] = "true"
+        attributes([
+                "Specification-Title"     : mod_name,
+                "Specification-Version"   : "1",
+                "Specification-Vendor"   : mod_author,
+                "Implementation-Title"    : mod_name,
+                "Implementation-Version"  : mod_version,
+                "Implementation-Vendor"   : mod_author,
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
 
-        def currentTasks = gradle.startParameter.taskNames
-        if (currentTasks[0] == 'build' || currentTasks[0] == 'assemble')
-            attr['ForceLoadAsMod'] = "true"
-        attributes(attr)
-    }
-}
+                // --- only use if you need a coremod ---
+                "FMLCorePlugin": mixin_loader_class,
+                "FMLCorePluginContainsFMLMod": "true", // this tells forge that you got both a normal @Mod AND a coremod
 
-//This task is only for copying output.jar into run/mods/ so when running indev fermiumbooter finds the jar to check for @MixinConfig annotations
-tasks.register("copyReobfJar", Copy) {
-    dependsOn("reobfJar")
-
-    from(layout.buildDirectory.file("reobfJar/output.jar"))
-    into(layout.projectDirectory.dir("run/mods"))
-    rename("output.jar", "${mod_name}-${mod_version}.jar")
-}
-
-afterEvaluate {
-    tasks.matching { it.name.startsWith("reobfJar") }.configureEach {
-        finalizedBy("copyReobfJar")
+                // ---
+                // These will construct the coremod a bit later (tweaker stage, after plugin stage)
+                // and will allow to use Mixins.addConfiguration during coremod init.
+                // Not needed for using FermiumRegistryAPI.enqueue, which achieves the same using late=false.
+                // So you most probably won't need this.
+                // ---
+                // Using this also forces you to use the build task before shipping,
+                // as using runClient or runServer creates a jar that only works indev (and vice versa)
+                // ---
+//            "TweakClass": "org.spongepowered.asm.launch.MixinTweaker",
+//            "ForceLoadAsMod": gradle.startParameter.taskNames[0] != 'runClient' && gradle.startParameter.taskNames[0] != 'runServer',
+        ])
     }
 }
 

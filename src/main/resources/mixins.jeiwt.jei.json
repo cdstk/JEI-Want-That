@@ -6,7 +6,8 @@
   "target": "@env(DEFAULT)",
   "minVersion": "0.8",
   "mixins": [
-    "jei.BookmarkList_DataMixin"
+    "jei.BookmarkList_DataMixin",
+    "hei.BookmarkItem_AccessorMixin"
   ],
   "injectors": {
     "maxShiftBy": 10
