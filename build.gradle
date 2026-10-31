@@ -110,6 +110,24 @@ fancyGradle {
     }
 }
 
+// Mappings for running lumien231's mods indev
+def mcpMappingsDir = file('mcp')
+
+tasks.register('prepareMinecraftMappings', Copy) {
+    dependsOn 'extractMappings'
+    from(layout.buildDirectory.dir('extractMappings')) {
+        include 'fields.csv'
+        include 'methods.csv'
+    }
+    into(mcpMappingsDir)
+}
+
+tasks.configureEach {
+    if (name.startsWith('prepareRun')) {
+        dependsOn 'prepareMinecraftMappings'
+    }
+}
+
 processResources {
     var replaceProperties = [
             'mod_id': mod_id,
